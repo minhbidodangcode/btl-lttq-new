@@ -48,8 +48,7 @@ namespace btl_lttq
             }
         }
 
-       
-        // 🔹 Lấy danh sách bạn bè
+        // 🔹 Lấy danh sách bạn bè (an toàn khi thiếu cột FriendUsername)
         public static List<FriendInfo> GetFriends(Guid userId)
         {
             List<FriendInfo> list = new List<FriendInfo>();
@@ -63,17 +62,35 @@ namespace btl_lttq
                 SqlDataReader r = cmd.ExecuteReader();
                 while (r.Read())
                 {
-                    list.Add(new FriendInfo
+                    var info = new FriendInfo
                     {
                         FriendId = r.GetGuid(r.GetOrdinal("FriendId")),
                         FriendName = r["FriendName"].ToString(),
                         AvatarUrl = r["AvatarUrl"] == DBNull.Value ? "default.png" : r["AvatarUrl"].ToString(),
                         StatusText = r["StatusText"] == DBNull.Value ? "" : r["StatusText"].ToString(),
-                        FriendUsername = r["FriendUsername"].ToString() // ✅ lấy username
-                    });
+                    };
+
+                    // ✅ chỉ gán FriendUsername nếu cột tồn tại
+                    if (HasColumn(r, "FriendUsername") && r["FriendUsername"] != DBNull.Value)
+                        info.FriendUsername = r["FriendUsername"].ToString();
+                    else
+                        info.FriendUsername = ""; // hoặc = info.FriendName nếu bạn muốn
+
+                    list.Add(info);
                 }
             }
             return list;
+        }
+
+        // 🔹 Hàm kiểm tra cột có tồn tại hay không
+        private static bool HasColumn(IDataRecord reader, string columnName)
+        {
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         // 🔹 Lấy thông tin hồ sơ người dùng theo UserId
@@ -93,8 +110,6 @@ namespace btl_lttq
                 }
             }
         }
-
-
     }
 
     public class FriendInfo

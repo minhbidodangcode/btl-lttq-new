@@ -1,20 +1,26 @@
 ﻿using System;
+using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Drawing;
-using System.Linq;                // ✅ Thêm dòng này
+using System.Linq;
 using System.Windows.Forms;
 
 namespace btl_lttq.Friendprofile
 {
     public partial class ProfileFriendForm : Form
     {
-        private Guid friendId;
+        private readonly Guid friendId;
+        private readonly string _connStr;
 
         public ProfileFriendForm(Guid id)
         {
             InitializeComponent();
             friendId = id;
+
+            // ✅ Lấy chuỗi kết nối từ App.config
+            _connStr = ConfigurationManager.ConnectionStrings["MessengerDb"].ConnectionString;
+
             LoadFriendProfile();
         }
 
@@ -22,31 +28,33 @@ namespace btl_lttq.Friendprofile
         {
             try
             {
-                using (SqlConnection conn = new SqlConnection(
-                    "Data Source=DESKTOP-G1DJPBN,1433;Initial Catalog=MessengerDb;User ID=sa;Password=123456aA@$;TrustServerCertificate=True;"))
+                using (SqlConnection conn = new SqlConnection(_connStr))
                 {
                     conn.Open();
-                    SqlCommand cmd = new SqlCommand("sp_GetUserProfile", conn);
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@UserId", friendId);
+                    using (SqlCommand cmd = new SqlCommand("sp_GetUserProfile", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@UserId", friendId);
 
-                    SqlDataReader r = cmd.ExecuteReader();
-                    if (r.Read())
-                    {
-                        txtFullName.Text = r["FullName"]?.ToString();
-                        txtEmail.Text = r["Email"]?.ToString();
-                        txtGender.Text = r["Gender"]?.ToString();
-                        txtPhone.Text = r["Phone"]?.ToString();
-                        txtHometown.Text = r["Hometown"]?.ToString();
-                        txtEducation.Text = r["Education"]?.ToString();
-                        txtWork.Text = r["Work"]?.ToString();
-                        txtRelationship.Text = r["Relationship"]?.ToString();
+                        using (SqlDataReader r = cmd.ExecuteReader())
+                        {
+                            if (r.Read())
+                            {
+                                txtFullName.Text = r["FullName"]?.ToString();
+                                txtEmail.Text = r["Email"]?.ToString();
+                                txtGender.Text = r["Gender"]?.ToString();
+                                txtPhone.Text = r["Phone"]?.ToString();
+                                txtHometown.Text = r["Hometown"]?.ToString();
+                                txtEducation.Text = r["Education"]?.ToString();
+                                txtWork.Text = r["Work"]?.ToString();
+                                txtRelationship.Text = r["Relationship"]?.ToString();
+                            }
+                            else
+                            {
+                                MessageBox.Show("Không tìm thấy thông tin người dùng này!", "Thông báo");
+                            }
+                        }
                     }
-                    else
-                    {
-                        MessageBox.Show("Không tìm thấy thông tin người dùng này!", "Thông báo");
-                    }
-                    r.Close();
                 }
             }
             catch (Exception ex)
@@ -62,7 +70,7 @@ namespace btl_lttq.Friendprofile
 
             foreach (Control ctrl in this.Controls)
             {
-                if (ctrl is btl_lttq.Friendprofile.RoundedTextBox rtb)
+                if (ctrl is RoundedTextBox rtb)
                 {
                     var innerText = rtb.Controls.OfType<TextBox>().FirstOrDefault();
                     if (innerText != null)
@@ -77,7 +85,7 @@ namespace btl_lttq.Friendprofile
                         // ❌ Chặn focus và nhập liệu
                         innerText.GotFocus += (s, e2) => this.ActiveControl = null;
                         innerText.MouseDown += (s, e2) => this.ActiveControl = null;
-                        innerText.KeyPress += (s, e2) => e2.Handled = true; // ngăn gõ phím
+                        innerText.KeyPress += (s, e2) => e2.Handled = true;
                     }
 
                     rtb.TabStop = false;
@@ -110,12 +118,11 @@ namespace btl_lttq.Friendprofile
             this.BeginInvoke(new Action(() => this.ActiveControl = null));
         }
 
-
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
-            this.ActiveControl = null;  // bỏ focus ban đầu
-            this.BeginInvoke(new Action(() => this.ActiveControl = null)); // bỏ focus lần 2 sau khi form render
+            this.ActiveControl = null;
+            this.BeginInvoke(new Action(() => this.ActiveControl = null));
         }
     }
 }

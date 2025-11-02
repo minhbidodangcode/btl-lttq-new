@@ -1,72 +1,103 @@
 ﻿using System;
-using System.Data;
-using System.Data.SqlClient;
 using System.Configuration;
-using System.Text;
+using System.Data.SqlClient;
+using System.Text.RegularExpressions;
 
-namespace btl_lttq.Login.Services
+public static class AuthService
 {
-    public static class AuthService
+    private static readonly string connectionString =
+        ConfigurationManager.ConnectionStrings["MessengerDb"].ConnectionString;
+
+    // 🔹 Đăng nhập
+    public static bool Login(string email, string password)
     {
-        private static readonly string connectionString =
-            ConfigurationManager.ConnectionStrings["MessengerDb"].ConnectionString;
-
-        public static bool Login(string email, string password)
+        using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            conn.Open();
+            const string sql = @"SELECT COUNT(*) FROM Users 
+                                 WHERE Email = @Email 
+                                 AND PasswordHash = CONVERT(VARBINARY(256), @Pwd)";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
             {
-                conn.Open();
-
-                string query = @"SELECT PasswordHash FROM Users WHERE Email = @Email";
-                using (SqlCommand cmd = new SqlCommand(query, conn))
-                {
-                    cmd.Parameters.AddWithValue("@Email", email);
-
-                    object result = cmd.ExecuteScalar();
-
-                    if (result == null || result == DBNull.Value)
-                        return false;
-
-                    // Nếu là VARBINARY (ví dụ 0x313233343536)
-                    if (result is byte[] bytes)
-                    {
-                        string dbPassword = Encoding.UTF8.GetString(bytes);
-                        return dbPassword == password;
-                    }
-                    else
-                    {
-                        string dbPassword = result.ToString();
-                        return dbPassword == password;
-                    }
-                }
+                cmd.Parameters.AddWithValue("@Email", email);
+                cmd.Parameters.AddWithValue("@Pwd", password);
+                return (int)cmd.ExecuteScalar() > 0;
             }
         }
+    }
 
-        public static bool Register(string email, string username, string password)
+    // 🔹 Đăng ký (cho phép trùng tên hiển thị)
+    public static (bool Success, string Message) Register(string email, string userName, string password)
+    {
+        // ✅ Kiểm tra định dạng email
+        if (!Regex.IsMatch(email, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", RegexOptions.IgnoreCase))
+            return (false, "Email không hợp lệ! Vui lòng nhập địa chỉ có đuôi .com");
+
+
+        using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            conn.Open();
+
+            // ❗ Kiểm tra trùng Email
+            using (var cmd = new SqlCommand("SELECT COUNT(*) FROM Users WHERE Email=@Email", conn))
             {
-                conn.Open();
-
-                string check = "SELECT COUNT(*) FROM Users WHERE Email = @Email";
-                SqlCommand checkCmd = new SqlCommand(check, conn);
-                checkCmd.Parameters.AddWithValue("@Email", email);
-                int exists = (int)checkCmd.ExecuteScalar();
-                if (exists > 0) return false;
-
-                // Lưu password dạng VARBINARY
-                byte[] pwBytes = Encoding.UTF8.GetBytes(password);
-
-                string insert = @"INSERT INTO Users (Email, UserName, PasswordHash)
-                                  VALUES (@Email, @UserName, @PasswordHash)";
-                SqlCommand insertCmd = new SqlCommand(insert, conn);
-                insertCmd.Parameters.AddWithValue("@Email", email);
-                insertCmd.Parameters.AddWithValue("@UserName", username);
-                insertCmd.Parameters.Add("@PasswordHash", SqlDbType.VarBinary).Value = pwBytes;
-                insertCmd.ExecuteNonQuery();
-
-                return true;
+                cmd.Parameters.AddWithValue("@Email", email);
+                if ((int)cmd.ExecuteScalar() > 0)
+                    return (false, "Email này đã được đăng ký!");
             }
+
+            // ✅ Tạo username duy nhất để không trùng với UNIQUE constraint
+            string uniqueUserName = $"{userName}_{Guid.NewGuid().ToString("N").Substring(0, 6)}";
+
+            // ✅ Thêm tài khoản (UserName unique, DisplayName giữ nguyên)
+            const string insert = @"
+                INSERT INTO Users (Id, UserName, DisplayName, Email, PasswordHash, PasswordSalt, CreatedAt)
+                VALUES (NEWID(), @UserName, @DisplayName, @Email,
+                        CONVERT(VARBINARY(256), @Pwd),
+                        CONVERT(VARBINARY(128), 'plain'),
+                        SYSDATETIME())";
+            using (var cmd = new SqlCommand(insert, conn))
+            {
+                cmd.Parameters.AddWithValue("@UserName", uniqueUserName);
+                cmd.Parameters.AddWithValue("@DisplayName", userName);
+                cmd.Parameters.AddWithValue("@Email", email);
+                cmd.Parameters.AddWithValue("@Pwd", password);
+                cmd.ExecuteNonQuery();
+            }
+
+            return (true, "Đăng ký thành công! Vui lòng đăng nhập.");
+        }
+    }
+
+    // 🔹 Đặt lại mật khẩu
+    public static (bool Success, string Message) ResetPassword(string email, string userName, string newPassword)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+
+            const string check = @"SELECT COUNT(*) FROM Users 
+                                   WHERE Email=@Email";
+            using (var cmd = new SqlCommand(check, conn))
+            {
+                cmd.Parameters.AddWithValue("@Email", email);
+                if ((int)cmd.ExecuteScalar() == 0)
+                    return (false, "Email không đúng hoặc chưa đăng ký!");
+            }
+
+            const string update = @"UPDATE Users 
+                                    SET PasswordHash = CONVERT(VARBINARY(256), @Pwd),
+                                        PasswordSalt = CONVERT(VARBINARY(128), 'plain'),
+                                        UpdatedAt = SYSDATETIME()
+                                    WHERE Email=@Email";
+            using (var cmd = new SqlCommand(update, conn))
+            {
+                cmd.Parameters.AddWithValue("@Pwd", newPassword);
+                cmd.Parameters.AddWithValue("@Email", email);
+                cmd.ExecuteNonQuery();
+            }
+
+            return (true, "Đặt lại mật khẩu thành công, vui lòng đăng nhập lại!");
         }
     }
 }

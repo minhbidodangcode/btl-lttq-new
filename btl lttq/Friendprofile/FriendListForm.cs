@@ -1,6 +1,7 @@
-﻿using btl_lttq.Data; // dùng FriendInfo & DatabaseHelper trong namespace Data
+﻿using btl_lttq.Data;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data.SqlClient;
 using System.Drawing;
 using System.Globalization;
@@ -13,53 +14,62 @@ namespace btl_lttq.Friendprofile
 {
     public partial class FriendListForm : Form
     {
+        private Guid _currentUserId;
+        private string _currentUsername;
         private List<FriendInfo> allFriends = new List<FriendInfo>();
+        private readonly string _connStr;
 
-        public FriendListForm()
+        // ✅ ctor mặc định để Designer / chỗ cũ vẫn gọi được
+        public FriendListForm() : this(Guid.Empty, null)
+        {
+        }
+
+        // ✅ ctor “chuẩn” – cái bạn nên dùng từ MessengerForm
+        public FriendListForm(Guid currentUserId, string currentUsername)
         {
             InitializeComponent();
+            _currentUserId = currentUserId;
+            _currentUsername = currentUsername;
+
+            // đọc từ app.config
+            _connStr = ConfigurationManager.ConnectionStrings["MessengerDb"]?.ConnectionString;
+  
         }
 
         private void FriendListForm_Load(object sender, EventArgs e)
         {
-            // --- Placeholder cho ô tìm kiếm ---
+            // placeholder
             txtSearch.ForeColor = Color.Gray;
             txtSearch.Text = "Tìm kiếm bạn bè";
             txtSearch.Font = new Font("Segoe UI", 12, FontStyle.Italic);
-
             txtSearch.GotFocus += RemoveText;
             txtSearch.LostFocus += AddText;
-
-            // Khi mất focus mà ô tìm kiếm trống → hiển thị lại toàn bộ
             txtSearch.LostFocus += (s, e2) =>
             {
                 if (string.IsNullOrWhiteSpace(txtSearch.Text) || txtSearch.Text == "Tìm kiếm bạn bè")
-                {
                     DisplayFriends(allFriends);
-                }
             };
 
-            Guid currentUserId = GetUserId("anninh");
-            allFriends = DatabaseHelper.GetFriends(currentUserId);
+            // nếu chưa được truyền userId từ ngoài (tức mở độc lập) → dùng anninh để dev
+            if (_currentUserId == Guid.Empty)
+            {
+                _currentUsername = string.IsNullOrEmpty(_currentUsername) ? "anninh" : _currentUsername;
+                _currentUserId = GetUserId(_currentUsername);
+            }
+
+            // load bạn bè của đúng user hiện tại
+            allFriends = DatabaseHelper.GetFriends(_currentUserId);
             DisplayFriends(allFriends);
 
-         
-
-            // Nút Thêm bạn
+            // mở form thêm bạn
             btnAddFriend.Click += (_, __) =>
             {
-                var addForm = new AddFriendForm(this);
+                var addForm = new AddFriendForm(this, _currentUserId, _currentUsername);
                 addForm.StartPosition = FormStartPosition.CenterScreen;
                 addForm.FormClosed += (s2, e2) => this.Show();
                 this.Hide();
                 addForm.Show();
             };
-
-            this.Click += (_, __) => this.ActiveControl = null;
-            panelHeader.Click += (_, __) => this.ActiveControl = null;
-            flowFriends.Click += (_, __) => this.ActiveControl = null;
-
-            this.ActiveControl = null;
         }
 
         protected override void OnShown(EventArgs e)
@@ -67,6 +77,8 @@ namespace btl_lttq.Friendprofile
             base.OnShown(e);
             this.ActiveControl = null;
         }
+
+        // 👉 được AddFriendForm gọi sau khi Accept / Delete
         public void ReloadFriends()
         {
             LoadFriends();
@@ -76,8 +88,12 @@ namespace btl_lttq.Friendprofile
         {
             try
             {
-                Guid currentUserId = GetUserId("anninh");
-                allFriends = DatabaseHelper.GetFriends(currentUserId);
+                // ❗ dùng đúng user hiện tại, không hardcode anninh nữa
+                Guid userIdToLoad = _currentUserId != Guid.Empty
+                    ? _currentUserId
+                    : GetUserId(_currentUsername ?? "anninh");
+
+                allFriends = DatabaseHelper.GetFriends(userIdToLoad);
                 DisplayFriends(allFriends);
             }
             catch (Exception ex)
@@ -119,7 +135,7 @@ namespace btl_lttq.Friendprofile
                     BackColor = Color.WhiteSmoke
                 };
 
-                // Avatar
+                // avatar
                 var avatar = new PictureBox
                 {
                     Size = new Size(50, 50),
@@ -127,10 +143,11 @@ namespace btl_lttq.Friendprofile
                     SizeMode = PictureBoxSizeMode.Zoom
                 };
                 string path = Path.Combine(Application.StartupPath, "Images", f.AvatarUrl ?? "");
-                if (File.Exists(path)) avatar.Image = Image.FromFile(path);
-                else avatar.BackColor = Color.LightGray;
+                if (File.Exists(path))
+                    avatar.Image = Image.FromFile(path);
+                else
+                    avatar.BackColor = Color.LightGray;
 
-                // Bo tròn avatar
                 avatar.Paint += (s, e) =>
                 {
                     var gp = new System.Drawing.Drawing2D.GraphicsPath();
@@ -138,7 +155,7 @@ namespace btl_lttq.Friendprofile
                     avatar.Region = new Region(gp);
                 };
 
-                // Tên bạn bè
+                // tên
                 var lblName = new Label
                 {
                     Text = f.FriendName,
@@ -147,7 +164,7 @@ namespace btl_lttq.Friendprofile
                     Location = new Point(70, 10)
                 };
 
-                // Trạng thái
+                // trạng thái
                 var lblStatus = new Label
                 {
                     Text = f.StatusText,
@@ -157,7 +174,7 @@ namespace btl_lttq.Friendprofile
                     Location = new Point(70, 35)
                 };
 
-                // Nút “Nhắn tin”
+                // nút nhắn tin
                 var btnChat = new Button
                 {
                     Text = "Nhắn tin",
@@ -171,9 +188,13 @@ namespace btl_lttq.Friendprofile
                 };
                 btnChat.FlatAppearance.BorderSize = 0;
                 btnChat.FlatAppearance.MouseOverBackColor = Color.DodgerBlue;
-                btnChat.Click += (s, e) => MessageBox.Show($"💬 Mở chat với {f.FriendName}");
+                btnChat.Click += (s, e) =>
+                {
+                    // chỗ này bạn đã có code mở chat rồi, giữ nguyên / gọi sang MessengerForm
+                    MessageBox.Show($"💬 Mở chat với {f.FriendName}");
+                };
 
-                // Nút “Thông tin” (ở giữa)
+                // nút thông tin
                 var btnInfo = new Button
                 {
                     Text = "Thông tin",
@@ -186,13 +207,10 @@ namespace btl_lttq.Friendprofile
                     Anchor = AnchorStyles.Top | AnchorStyles.Right
                 };
                 btnInfo.FlatAppearance.BorderSize = 0;
-                btnInfo.FlatAppearance.MouseOverBackColor = Color.SeaGreen;
-
                 btnInfo.Click += (s, e) =>
                 {
                     try
                     {
-                        // ✅ Mở form hồ sơ bạn bè (ProfileFriendForm)
                         var profileForm = new ProfileFriendForm(f.FriendId);
                         profileForm.StartPosition = FormStartPosition.CenterScreen;
                         profileForm.ShowDialog();
@@ -203,9 +221,7 @@ namespace btl_lttq.Friendprofile
                     }
                 };
 
-
-
-                // Nút “Xóa bạn”
+                // nút xóa bạn
                 var btnDelete = new Button
                 {
                     Text = "Xóa bạn",
@@ -232,8 +248,12 @@ namespace btl_lttq.Friendprofile
                     {
                         try
                         {
-                            using (var conn = new SqlConnection(
-                                "Data Source=DESKTOP-G1DJPBN,1433;Initial Catalog=MessengerDb;User ID=sa;Password=123456aA@$;TrustServerCertificate=True;"))
+                            // 👉 dùng đúng user đang đăng nhập
+                            Guid me = _currentUserId != Guid.Empty
+                                ? _currentUserId
+                                : GetUserId(_currentUsername ?? "anninh");
+
+                            using (var conn = new SqlConnection(_connStr))
                             {
                                 conn.Open();
                                 string sql = @"
@@ -242,7 +262,7 @@ namespace btl_lttq.Friendprofile
                                        OR (RequesterId = @friendId AND AddresseeId = @userId)";
                                 using (var cmd = new SqlCommand(sql, conn))
                                 {
-                                    cmd.Parameters.AddWithValue("@userId", GetUserId("anninh"));
+                                    cmd.Parameters.AddWithValue("@userId", me);
                                     cmd.Parameters.AddWithValue("@friendId", f.FriendId);
                                     cmd.ExecuteNonQuery();
                                 }
@@ -258,7 +278,6 @@ namespace btl_lttq.Friendprofile
                     }
                 };
 
-                // Thêm tất cả control vào panel
                 p.Controls.Add(avatar);
                 p.Controls.Add(lblName);
                 p.Controls.Add(lblStatus);
@@ -272,13 +291,18 @@ namespace btl_lttq.Friendprofile
 
         private Guid GetUserId(string username)
         {
-            using (var conn = new SqlConnection(
-                "Data Source=DESKTOP-G1DJPBN,1433;Initial Catalog=MessengerDb;User ID=sa;Password=123456aA@$;TrustServerCertificate=True;"))
+            if (string.IsNullOrWhiteSpace(_connStr))
+                throw new Exception("ConnectionString MessengerDb chưa được cấu hình.");
+
+            using (var conn = new SqlConnection(_connStr))
             {
-                var cmd = new SqlCommand("SELECT Id FROM Users WHERE UserName=@u", conn);
-                cmd.Parameters.AddWithValue("@u", username);
                 conn.Open();
-                return (Guid)cmd.ExecuteScalar();
+                using (var cmd = new SqlCommand("SELECT Id FROM Users WHERE UserName=@u", conn))
+                {
+                    cmd.Parameters.AddWithValue("@u", username);
+                    var result = cmd.ExecuteScalar();
+                    return result != null ? (Guid)result : Guid.Empty;
+                }
             }
         }
 

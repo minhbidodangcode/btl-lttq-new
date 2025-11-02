@@ -15,6 +15,21 @@
     <LangVersion>8.0</LangVersion>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -34,6 +49,10 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>
+    </StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AWSSDK.Core, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
@@ -63,6 +82,7 @@
     <Reference Include="Microsoft.Extensions.Primitives, Version=9.0.0.10, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Primitives.9.0.10\lib\net462\Microsoft.Extensions.Primitives.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="Microsoft.Win32.Registry, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Win32.Registry.5.0.0\lib\net461\Microsoft.Win32.Registry.dll</HintPath>
     </Reference>
@@ -179,6 +199,24 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Admin\FormDoanChat.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Admin\FormDoanChat.Designer.cs">
+      <DependentUpon>FormDoanChat.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Admin\FormMenu.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Admin\FormMenu.Designer.cs">
+      <DependentUpon>FormMenu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Admin\FormTaiKhoan.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Admin\FormTaiKhoan.Designer.cs">
+      <DependentUpon>FormTaiKhoan.cs</DependentUpon>
+    </Compile>
     <Compile Include="ChatClient\EmojiPickerForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -221,7 +259,7 @@
     <Compile Include="Friendprofile\AddFriendForm.Designer.cs">
       <DependentUpon>AddFriendForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Friendprofile\DatabaseHelper.cs" />
+    <Compile Include="Data\DatabaseHelper.cs" />
     <Compile Include="Friendprofile\FriendListForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -267,6 +305,15 @@
     <Compile Include="Friendprofile\RoundedTextBox.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <EmbeddedResource Include="Admin\FormDoanChat.resx">
+      <DependentUpon>FormDoanChat.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Admin\FormMenu.resx">
+      <DependentUpon>FormMenu.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Admin\FormTaiKhoan.resx">
+      <DependentUpon>FormTaiKhoan.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="ChatClient\EmojiPickerForm.resx">
       <DependentUpon>EmojiPickerForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -312,10 +359,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <None Include="bin\Debug\btl lttq.exe.config" />
-    <None Include="bin\Debug\BTL_Ungdungchat.exe.config" />
     <None Include="FacebookLite\FacebookLite.csproj" />
-    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -333,70 +377,25 @@
     <Analyzer Include="..\packages\AWSSDK.SecurityToken.3.7.100.14\analyzers\dotnet\cs\AWSSDK.SecurityToken.CodeAnalysis.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="bin\Debug\AWSSDK.Core.dll" />
-    <Content Include="bin\Debug\AWSSDK.Core.pdb" />
-    <Content Include="bin\Debug\AWSSDK.Core.xml" />
-    <Content Include="bin\Debug\AWSSDK.SecurityToken.dll" />
-    <Content Include="bin\Debug\AWSSDK.SecurityToken.pdb" />
-    <Content Include="bin\Debug\AWSSDK.SecurityToken.xml" />
-    <Content Include="bin\Debug\Background\Backgroundbear.jpg" />
-    <Content Include="bin\Debug\Background\Backgrounddoodle.jpg" />
-    <Content Include="bin\Debug\Background\BackgroundDoodle2.jpg" />
-    <Content Include="bin\Debug\Background\Backgroundlove.jpg" />
-    <Content Include="bin\Debug\Background\BackgroundSnoopy.jpg" />
-    <Content Include="bin\Debug\Background\Backgroundtrochuyen.jpg" />
-    <Content Include="bin\Debug\btl lttq.exe" />
-    <Content Include="bin\Debug\btl lttq.pdb" />
-    <Content Include="bin\Debug\BTL_Ungdungchat.exe" />
-    <Content Include="bin\Debug\BTL_Ungdungchat.pdb" />
-    <Content Include="bin\Debug\DnsClient.dll" />
-    <Content Include="bin\Debug\DnsClient.xml" />
-    <Content Include="bin\Debug\Microsoft.Bcl.AsyncInterfaces.dll" />
-    <Content Include="bin\Debug\Microsoft.Bcl.AsyncInterfaces.xml" />
-    <Content Include="bin\Debug\Microsoft.Extensions.Configuration.Abstractions.dll" />
-    <Content Include="bin\Debug\Microsoft.Extensions.Configuration.Abstractions.xml" />
-    <Content Include="bin\Debug\Microsoft.Extensions.Configuration.dll" />
-    <Content Include="bin\Debug\Microsoft.Extensions.Configuration.xml" />
-    <Content Include="bin\Debug\Microsoft.Extensions.Logging.Abstractions.dll" />
-    <Content Include="bin\Debug\Microsoft.Extensions.Logging.Abstractions.xml" />
-    <Content Include="bin\Debug\Microsoft.Extensions.Primitives.dll" />
-    <Content Include="bin\Debug\Microsoft.Extensions.Primitives.xml" />
-    <Content Include="bin\Debug\Microsoft.Win32.Registry.dll" />
-    <Content Include="bin\Debug\Microsoft.Win32.Registry.xml" />
-    <Content Include="bin\Debug\mongocrypt.dll" />
-    <Content Include="bin\Debug\MongoDB.Bson.dll" />
-    <Content Include="bin\Debug\MongoDB.Bson.xml" />
-    <Content Include="bin\Debug\MongoDB.Driver.Core.dll" />
-    <Content Include="bin\Debug\MongoDB.Driver.Core.xml" />
-    <Content Include="bin\Debug\MongoDB.Libmongocrypt.dll" />
-    <Content Include="bin\Debug\MongoDB.Libmongocrypt.pdb" />
-    <Content Include="bin\Debug\SharpCompress.dll" />
-    <Content Include="bin\Debug\Snappier.dll" />
-    <Content Include="bin\Debug\Snappier.xml" />
-    <Content Include="bin\Debug\System.Buffers.dll" />
-    <Content Include="bin\Debug\System.Buffers.xml" />
-    <Content Include="bin\Debug\System.Configuration.ConfigurationManager.dll" />
-    <Content Include="bin\Debug\System.Configuration.ConfigurationManager.xml" />
-    <Content Include="bin\Debug\System.Memory.dll" />
-    <Content Include="bin\Debug\System.Memory.xml" />
-    <Content Include="bin\Debug\System.Numerics.Vectors.dll" />
-    <Content Include="bin\Debug\System.Numerics.Vectors.xml" />
-    <Content Include="bin\Debug\System.Runtime.CompilerServices.Unsafe.dll" />
-    <Content Include="bin\Debug\System.Runtime.CompilerServices.Unsafe.xml" />
-    <Content Include="bin\Debug\System.Security.AccessControl.dll" />
-    <Content Include="bin\Debug\System.Security.AccessControl.xml" />
-    <Content Include="bin\Debug\System.Security.Principal.Windows.dll" />
-    <Content Include="bin\Debug\System.Security.Principal.Windows.xml" />
-    <Content Include="bin\Debug\System.Text.Encoding.CodePages.dll" />
-    <Content Include="bin\Debug\System.Text.Encoding.CodePages.xml" />
-    <Content Include="bin\Debug\System.Threading.Tasks.Extensions.dll" />
-    <Content Include="bin\Debug\System.Threading.Tasks.Extensions.xml" />
-    <Content Include="bin\Debug\System.ValueTuple.dll" />
-    <Content Include="bin\Debug\System.ValueTuple.xml" />
-    <Content Include="bin\Debug\ZstdSharp.dll" />
+    <Content Include="Background\Backgroundbear.jpg" />
+    <Content Include="Background\Backgrounddoodle.jpg" />
+    <Content Include="Background\BackgroundDoodle2.jpg" />
+    <Content Include="Background\Backgroundlove.jpg" />
+    <Content Include="Background\BackgroundSnoopy.jpg" />
+    <Content Include="Background\Backgroundtrochuyen.jpg" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <Folder Include="bin\Release\" />
+    <BootstrapperPackage Include=".NETFramework,Version=v4.8">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.8 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

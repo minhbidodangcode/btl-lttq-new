@@ -1,15 +1,24 @@
-﻿namespace btl_lttq.Login
+﻿using System.Drawing;
+using System.Windows.Forms;
+
+namespace btl_lttq.Login
+
 {
     partial class RegisterForm
     {
         private System.ComponentModel.IContainer components = null;
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox txtEmail;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox txtUserName;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.TextBox txtPassword;
-        private System.Windows.Forms.Button btnRegister;
+
+        private Panel pnlCard;
+        private Button btnBack;
+        private Label lblLogo;
+        private Label lblTitle;
+        private Label lblEmail;
+        private TextBox txtEmail;
+        private Label lblUserName;
+        private TextBox txtUserName;
+        private Label lblPassword;
+        private TextBox txtPassword;
+        private Button btnRegister;
 
         protected override void Dispose(bool disposing)
         {
@@ -19,109 +28,124 @@
 
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
-            this.txtEmail = new System.Windows.Forms.TextBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.txtUserName = new System.Windows.Forms.TextBox();
-            this.label3 = new System.Windows.Forms.Label();
-            this.txtPassword = new System.Windows.Forms.TextBox();
-            this.btnRegister = new System.Windows.Forms.Button();
-            this.label4 = new System.Windows.Forms.Label();
+            this.pnlCard = new Panel();
+            this.btnBack = new Button();
+            this.lblLogo = new Label();
+            this.lblTitle = new Label();
+            this.lblEmail = new Label();
+            this.txtEmail = new TextBox();
+            this.lblUserName = new Label();
+            this.txtUserName = new TextBox();
+            this.lblPassword = new Label();
+            this.txtPassword = new TextBox();
+            this.btnRegister = new Button();
             this.SuspendLayout();
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(292, 110);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(39, 13);
-            this.label1.TabIndex = 6;
-            this.label1.Text = "Email *";
-            // 
-            // txtEmail
-            // 
-            this.txtEmail.Location = new System.Drawing.Point(296, 146);
-            this.txtEmail.Name = "txtEmail";
-            this.txtEmail.Size = new System.Drawing.Size(280, 20);
-            this.txtEmail.TabIndex = 5;
-            // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(292, 189);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(123, 13);
-            this.label2.TabIndex = 4;
-            this.label2.Text = "UserName (có thể trùng)";
-            // 
-            // txtUserName
-            // 
-            this.txtUserName.Location = new System.Drawing.Point(296, 221);
-            this.txtUserName.Name = "txtUserName";
-            this.txtUserName.Size = new System.Drawing.Size(280, 20);
-            this.txtUserName.TabIndex = 3;
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(292, 269);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(59, 13);
-            this.label3.TabIndex = 2;
-            this.label3.Text = "Mật khẩu *";
-            // 
-            // txtPassword
-            // 
-            this.txtPassword.Location = new System.Drawing.Point(296, 303);
-            this.txtPassword.Name = "txtPassword";
-            this.txtPassword.PasswordChar = '•';
-            this.txtPassword.Size = new System.Drawing.Size(280, 20);
-            this.txtPassword.TabIndex = 1;
-            // 
-            // btnRegister
-            // 
-            this.btnRegister.BackColor = System.Drawing.Color.White;
-            this.btnRegister.Location = new System.Drawing.Point(296, 352);
-            this.btnRegister.Name = "btnRegister";
-            this.btnRegister.Size = new System.Drawing.Size(280, 32);
-            this.btnRegister.TabIndex = 0;
-            this.btnRegister.Text = "Đăng ký";
-            this.btnRegister.UseVisualStyleBackColor = false;
-            this.btnRegister.Click += new System.EventHandler(this.btnRegister_Click);
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label4.ForeColor = System.Drawing.Color.Red;
-            this.label4.Location = new System.Drawing.Point(292, 43);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(200, 29);
-            this.label4.TabIndex = 7;
-            this.label4.Text = "Please Register";
-            // 
-            // RegisterForm
-            // 
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
-            this.ClientSize = new System.Drawing.Size(900, 435);
-            this.Controls.Add(this.label4);
-            this.Controls.Add(this.btnRegister);
-            this.Controls.Add(this.txtPassword);
-            this.Controls.Add(this.label3);
-            this.Controls.Add(this.txtUserName);
-            this.Controls.Add(this.label2);
-            this.Controls.Add(this.txtEmail);
-            this.Controls.Add(this.label1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+
+            // Form
+            this.AutoScaleMode = AutoScaleMode.None;
+            this.BackColor = Color.White;
+            this.ClientSize = new Size(900, 600);
+            this.DoubleBuffered = true;
+            this.Font = new Font("Segoe UI", 10F);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.Name = "RegisterForm";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.StartPosition = FormStartPosition.CenterScreen;
             this.Text = "Đăng ký";
             this.Load += new System.EventHandler(this.RegisterForm_Load);
+            this.Paint += new PaintEventHandler(this.Form_PaintGradient);
+
+            // Card
+            this.pnlCard.BackColor = Color.White;
+            this.pnlCard.Location = new Point(190, 90);
+            this.pnlCard.Size = new Size(520, 420);
+
+            // Back
+            this.btnBack.Text = "← Quay lại";
+            this.btnBack.Location = new Point(16, 14);
+            this.btnBack.Size = new Size(96, 32);
+            this.btnBack.BackColor = Color.FromArgb(0, 153, 188);
+            this.btnBack.ForeColor = Color.White;
+            this.btnBack.FlatStyle = FlatStyle.Flat;
+            this.btnBack.FlatAppearance.BorderSize = 0;
+            this.btnBack.Cursor = Cursors.Hand;
+            this.btnBack.Click += new System.EventHandler(this.btnBack_Click);
+
+            // Logo
+            this.lblLogo.AutoSize = false;
+            this.lblLogo.Text = "💬  Messenger";
+            this.lblLogo.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblLogo.Font = new Font("Segoe UI Semibold", 22F, FontStyle.Bold);
+            this.lblLogo.ForeColor = Color.FromArgb(20, 120, 140);
+            this.lblLogo.Location = new Point(0, 28);
+            this.lblLogo.Size = new Size(520, 50);
+
+            // Title
+            this.lblTitle.AutoSize = false;
+            this.lblTitle.Text = "Create your account";
+            this.lblTitle.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblTitle.Font = new Font("Segoe UI", 13F);
+            this.lblTitle.ForeColor = Color.FromArgb(70, 90, 100);
+            this.lblTitle.Location = new Point(0, 78);
+            this.lblTitle.Size = new Size(520, 30);
+
+            // Email
+            this.lblEmail.AutoSize = true;
+            this.lblEmail.Text = "Email *";
+            this.lblEmail.ForeColor = Color.FromArgb(60, 80, 90);
+            this.lblEmail.Location = new Point(90, 130);
+
+            this.txtEmail.Location = new Point(90, 155);
+            this.txtEmail.Size = new Size(340, 30);
+            this.txtEmail.BorderStyle = BorderStyle.FixedSingle;
+
+            // UserName
+            this.lblUserName.AutoSize = true;
+            this.lblUserName.Text = "Tên người dùng *";
+            this.lblUserName.ForeColor = Color.FromArgb(60, 80, 90);
+            this.lblUserName.Location = new Point(90, 205);
+
+            this.txtUserName.Location = new Point(90, 230);
+            this.txtUserName.Size = new Size(340, 30);
+            this.txtUserName.BorderStyle = BorderStyle.FixedSingle;
+
+            // Password
+            this.lblPassword.AutoSize = true;
+            this.lblPassword.Text = "Mật khẩu *";
+            this.lblPassword.ForeColor = Color.FromArgb(60, 80, 90);
+            this.lblPassword.Location = new Point(90, 280);
+
+            this.txtPassword.Location = new Point(90, 305);
+            this.txtPassword.Size = new Size(340, 30);
+            this.txtPassword.PasswordChar = '•';
+            this.txtPassword.BorderStyle = BorderStyle.FixedSingle;
+
+            // Register button
+            this.btnRegister.Text = "Đăng ký";
+            this.btnRegister.Location = new Point(90, 360);
+            this.btnRegister.Size = new Size(340, 40);
+            this.btnRegister.BackColor = Color.FromArgb(0, 153, 188);
+            this.btnRegister.ForeColor = Color.White;
+            this.btnRegister.FlatStyle = FlatStyle.Flat;
+            this.btnRegister.FlatAppearance.BorderSize = 0;
+            this.btnRegister.Cursor = Cursors.Hand;
+            this.btnRegister.Click += new System.EventHandler(this.btnRegister_Click);
+
+            // Add to card
+            this.pnlCard.Controls.Add(this.lblLogo);
+            this.pnlCard.Controls.Add(this.lblTitle);
+            this.pnlCard.Controls.Add(this.lblEmail);
+            this.pnlCard.Controls.Add(this.txtEmail);
+            this.pnlCard.Controls.Add(this.lblUserName);
+            this.pnlCard.Controls.Add(this.txtUserName);
+            this.pnlCard.Controls.Add(this.lblPassword);
+            this.pnlCard.Controls.Add(this.txtPassword);
+            this.pnlCard.Controls.Add(this.btnRegister);
+
+            // Add to form
+            this.Controls.Add(this.pnlCard);
+            this.Controls.Add(this.btnBack);
+
             this.ResumeLayout(false);
-            this.PerformLayout();
-
         }
-
-        private System.Windows.Forms.Label label4;
     }
 }

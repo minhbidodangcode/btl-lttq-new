@@ -11,6 +11,7 @@ namespace btl_lttq.ChatClient
         private Panel panelLeft;
         private Panel panelLeftTop;
         private TextBox txtGlobalSearch;
+        private Button btnCreateGroup;
         private ListView lvConversations;
         private Panel panelLeftBottom;
         private Button btnFriends;
@@ -81,6 +82,7 @@ namespace btl_lttq.ChatClient
             this.btnInfo = new System.Windows.Forms.Button();
             this.splitterRight = new System.Windows.Forms.Splitter();
             this.panelRight = new System.Windows.Forms.Panel();
+            this.lblTheme = new System.Windows.Forms.Label();
             this.lvSharedFiles = new System.Windows.Forms.ListView();
             this.lblSharedFiles = new System.Windows.Forms.Label();
             this.lstMembers = new System.Windows.Forms.ListBox();
@@ -99,6 +101,8 @@ namespace btl_lttq.ChatClient
             // 
             // panelLeft
             // 
+            this.panelLeft.Padding = new Padding(0);
+            this.panelLeft.Margin = new Padding(6);
             this.panelLeft.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(246)))), ((int)(((byte)(248)))));
             this.panelLeft.Controls.Add(this.lvConversations);
             this.panelLeft.Controls.Add(this.panelLeftBottom);
@@ -125,39 +129,61 @@ namespace btl_lttq.ChatClient
             // 
             // panelLeftBottom
             // 
-            this.panelLeftBottom.BackColor = System.Drawing.Color.White;
+            this.panelLeftBottom.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(35)))), ((int)(((byte)(37)))));
             this.panelLeftBottom.Controls.Add(this.btnSettings);
             this.panelLeftBottom.Controls.Add(this.btnProfile);
             this.panelLeftBottom.Controls.Add(this.btnFriends);
             this.panelLeftBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panelLeftBottom.Location = new System.Drawing.Point(0, 664);
             this.panelLeftBottom.Name = "panelLeftBottom";
+            this.panelLeftBottom.Padding = new System.Windows.Forms.Padding(4);
             this.panelLeftBottom.Size = new System.Drawing.Size(280, 56);
             this.panelLeftBottom.TabIndex = 1;
             // 
             // btnSettings
             // 
-            this.btnSettings.Location = new System.Drawing.Point(184, 8);
+            this.btnSettings.Dock = System.Windows.Forms.DockStyle.Left;
+            this.btnSettings.FlatAppearance.BorderSize = 0;
+            this.btnSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSettings.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.btnSettings.ForeColor = System.Drawing.Color.White;
+            this.btnSettings.Location = new System.Drawing.Point(120, 4);
+            this.btnSettings.Margin = new System.Windows.Forms.Padding(0);
             this.btnSettings.Name = "btnSettings";
-            this.btnSettings.Size = new System.Drawing.Size(80, 40);
-            this.btnSettings.TabIndex = 0;
-            this.btnSettings.Text = "Cài đặt";
+            this.btnSettings.Size = new System.Drawing.Size(56, 48);
+            this.btnSettings.TabIndex = 2;
+            this.btnSettings.Text = "⚙";
+            this.btnSettings.UseVisualStyleBackColor = false;
             // 
             // btnProfile
             // 
-            this.btnProfile.Location = new System.Drawing.Point(96, 8);
+            this.btnProfile.Dock = System.Windows.Forms.DockStyle.Left;
+            this.btnProfile.FlatAppearance.BorderSize = 0;
+            this.btnProfile.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnProfile.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.btnProfile.ForeColor = System.Drawing.Color.White;
+            this.btnProfile.Location = new System.Drawing.Point(64, 4);
+            this.btnProfile.Margin = new System.Windows.Forms.Padding(0);
             this.btnProfile.Name = "btnProfile";
-            this.btnProfile.Size = new System.Drawing.Size(80, 40);
+            this.btnProfile.Size = new System.Drawing.Size(56, 48);
             this.btnProfile.TabIndex = 1;
-            this.btnProfile.Text = "Hồ sơ";
+            this.btnProfile.Text = "👤";
+            this.btnProfile.UseVisualStyleBackColor = false;
             // 
             // btnFriends
             // 
-            this.btnFriends.Location = new System.Drawing.Point(8, 8);
+            this.btnFriends.Dock = System.Windows.Forms.DockStyle.Left;
+            this.btnFriends.FlatAppearance.BorderSize = 0;
+            this.btnFriends.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnFriends.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.btnFriends.ForeColor = System.Drawing.Color.White;
+            this.btnFriends.Location = new System.Drawing.Point(4, 4);
+            this.btnFriends.Margin = new System.Windows.Forms.Padding(0);
             this.btnFriends.Name = "btnFriends";
-            this.btnFriends.Size = new System.Drawing.Size(80, 40);
-            this.btnFriends.TabIndex = 2;
-            this.btnFriends.Text = "Bạn bè";
+            this.btnFriends.Size = new System.Drawing.Size(60, 48);
+            this.btnFriends.TabIndex = 0;
+            this.btnFriends.Text = "👥";
+            this.btnFriends.UseVisualStyleBackColor = false;
             // 
             // panelLeftTop
             // 
@@ -199,6 +225,7 @@ namespace btl_lttq.ChatClient
             // panelCenter
             // 
             this.panelCenter.BackColor = System.Drawing.Color.White;
+            this.panelCenter.Margin = new Padding(6);
             this.panelCenter.Controls.Add(this.panelMessages);
             this.panelCenter.Controls.Add(this.inputPanel);
             this.panelCenter.Controls.Add(this.headerPanel);
@@ -362,6 +389,8 @@ namespace btl_lttq.ChatClient
             // panelRight
             // 
             this.panelRight.BackColor = System.Drawing.Color.White;
+            this.panelRight.Margin = new Padding(6);
+            this.panelRight.Controls.Add(this.lblTheme);
             this.panelRight.Controls.Add(this.lvSharedFiles);
             this.panelRight.Controls.Add(this.lblSharedFiles);
             this.panelRight.Controls.Add(this.lstMembers);
@@ -376,13 +405,22 @@ namespace btl_lttq.ChatClient
             this.panelRight.TabIndex = 2;
             this.panelRight.Visible = false;
             // 
+            // lblTheme
+            // 
+            this.lblTheme.AutoSize = true;
+            this.lblTheme.Location = new System.Drawing.Point(6, 34);
+            this.lblTheme.Name = "lblTheme";
+            this.lblTheme.Size = new System.Drawing.Size(40, 13);
+            this.lblTheme.TabIndex = 5;
+            this.lblTheme.Text = "Theme";
+            // 
             // lvSharedFiles
             // 
             this.lvSharedFiles.FullRowSelect = true;
             this.lvSharedFiles.HideSelection = false;
-            this.lvSharedFiles.Location = new System.Drawing.Point(8, 206);
+            this.lvSharedFiles.Location = new System.Drawing.Point(8, 338);
             this.lvSharedFiles.Name = "lvSharedFiles";
-            this.lvSharedFiles.Size = new System.Drawing.Size(240, 500);
+            this.lvSharedFiles.Size = new System.Drawing.Size(240, 368);
             this.lvSharedFiles.TabIndex = 0;
             this.lvSharedFiles.UseCompatibleStateImageBehavior = false;
             this.lvSharedFiles.View = System.Windows.Forms.View.Details;
@@ -390,7 +428,7 @@ namespace btl_lttq.ChatClient
             // lblSharedFiles
             // 
             this.lblSharedFiles.AutoSize = true;
-            this.lblSharedFiles.Location = new System.Drawing.Point(8, 186);
+            this.lblSharedFiles.Location = new System.Drawing.Point(4, 308);
             this.lblSharedFiles.Name = "lblSharedFiles";
             this.lblSharedFiles.Size = new System.Drawing.Size(79, 13);
             this.lblSharedFiles.TabIndex = 1;
@@ -398,15 +436,15 @@ namespace btl_lttq.ChatClient
             // 
             // lstMembers
             // 
-            this.lstMembers.Location = new System.Drawing.Point(8, 84);
+            this.lstMembers.Location = new System.Drawing.Point(8, 136);
             this.lstMembers.Name = "lstMembers";
-            this.lstMembers.Size = new System.Drawing.Size(240, 95);
+            this.lstMembers.Size = new System.Drawing.Size(240, 147);
             this.lstMembers.TabIndex = 2;
             // 
             // lblParticipants
             // 
             this.lblParticipants.AutoSize = true;
-            this.lblParticipants.Location = new System.Drawing.Point(8, 64);
+            this.lblParticipants.Location = new System.Drawing.Point(8, 120);
             this.lblParticipants.Name = "lblParticipants";
             this.lblParticipants.Size = new System.Drawing.Size(76, 13);
             this.lblParticipants.TabIndex = 3;
@@ -425,7 +463,7 @@ namespace btl_lttq.ChatClient
             // 
             this.cboBackground.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboBackground.FormattingEnabled = true;
-            this.cboBackground.Location = new System.Drawing.Point(8, 32);
+            this.cboBackground.Location = new System.Drawing.Point(7, 50);
             this.cboBackground.Name = "cboBackground";
             this.cboBackground.Size = new System.Drawing.Size(121, 21);
             this.cboBackground.TabIndex = 0;
@@ -456,6 +494,6 @@ namespace btl_lttq.ChatClient
 
         }
 
-        private Button btnCreateGroup;
+        private Label lblTheme;
     }
 }

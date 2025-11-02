@@ -1,95 +1,87 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data.SqlClient;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
-using System.Globalization;
 using System.Text;
+using System.Globalization;
+using System.Windows.Forms;
 
 namespace btl_lttq.Friendprofile
 {
     public partial class AddFriendForm : Form
     {
         private List<FriendRequest> allRequests = new List<FriendRequest>();
-        private string connectionString = "Data Source=DESKTOP-G1DJPBN,1433;Initial Catalog=MessengerDb;User ID=sa;Password=123456aA@$;TrustServerCertificate=True;";
-        private FriendListForm _friendListForm; // 🔹 Form danh sách bạn bè để quay lại
+        private readonly string connectionString =
+            ConfigurationManager.ConnectionStrings["MessengerDb"].ConnectionString;
 
-        public AddFriendForm(FriendListForm friendListForm)
+        private readonly FriendListForm _friendListForm;
+
+        // 👇 user thật sự đang đăng nhập
+        private readonly Guid _currentUserId;
+        private readonly string _currentUsername;
+
+        // ctor CHÍNH: luôn truyền user hiện tại
+        public AddFriendForm(FriendListForm friendListForm, Guid currentUserId, string currentUsername)
         {
             InitializeComponent();
             _friendListForm = friendListForm;
+            _currentUserId = currentUserId;
+            _currentUsername = currentUsername;
         }
+
+        // ctor fallback nếu ai đó gọi cũ
+        public AddFriendForm() : this(null, Guid.Empty, null) { }
 
         private void AddFriendForm_Load(object sender, EventArgs e)
         {
             flowRequests.AutoScroll = true;
             flowRequests.WrapContents = false;
             flowRequests.FlowDirection = FlowDirection.TopDown;
-            LoadFriendRequests();
 
-            // Placeholder
+            // nếu vẫn chưa có id thì fallback anninh (chỉ dành cho test)
+            Guid useId = _currentUserId;
+            string useName = _currentUsername;
+
+            if (useId == Guid.Empty)
+            {
+                useName = string.IsNullOrEmpty(useName) ? "anninh" : useName;
+                useId = GetUserId(useName);
+            }
+
+            LoadFriendRequests(useId);
+
+            // placeholder
             txtSearch.ForeColor = Color.Gray;
-            txtSearch.Text = "Tìm lời kết bạn";
+            txtSearch.Text = "Tìm lời kết bạn hoặc người dùng";
             txtSearch.Font = new Font("Segoe UI", 12, FontStyle.Italic);
             txtSearch.GotFocus += RemovePlaceholder;
             txtSearch.LostFocus += AddPlaceholder;
-
             txtSearch.LostFocus += (s, e2) =>
             {
-                if (string.IsNullOrWhiteSpace(txtSearch.Text) || txtSearch.Text == "Tìm lời kết bạn")
+                if (string.IsNullOrWhiteSpace(txtSearch.Text) ||
+                    txtSearch.Text == "Tìm lời kết bạn hoặc người dùng")
                     DisplayFriendRequests(allRequests);
             };
 
-            // Click ra ngoài -> bỏ focus
             this.ActiveControl = null;
-            this.MouseDown += (s, e) =>
-            {
-                Control c = this.GetChildAtPoint(e.Location);
-                if (c == null || !(c is TextBox))
-                    this.ActiveControl = null;
-            };
-            this.ActiveControl = null; //
-        }
-        protected override void OnShown(EventArgs e)
-        {
-            base.OnShown(e);
-            this.ActiveControl = null; // không auto focus khi form hiển thị
         }
 
-
-        private void RemovePlaceholder(object sender, EventArgs e)
-        {
-            if (txtSearch.Text == "Tìm lời kết bạn")
-            {
-                txtSearch.Text = "";
-                txtSearch.ForeColor = Color.Black;
-                txtSearch.Font = new Font("Segoe UI", 10, FontStyle.Regular);
-            }
-        }
-
-        private void AddPlaceholder(object sender, EventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(txtSearch.Text))
-            {
-                txtSearch.Text = "Tìm lời kết bạn";
-                txtSearch.ForeColor = Color.Gray;
-                txtSearch.Font = new Font("Segoe UI", 10, FontStyle.Italic);
-            }
-        }
-
-        // 🔹 Load danh sách lời mời kết bạn
-        private void LoadFriendRequests()
+        // 🔹 load cả lời mời đến + người có thể gửi lời mời
+        private void LoadFriendRequests(Guid currentUserId)
         {
             try
             {
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    Guid currentUserId = GetUserId("anninh");
 
-                    string sql = @"
+                    var all = new List<FriendRequest>();
+
+                    // 1. lời mời đến
+                    string sqlInvite = @"
                         SELECT 
                             f.Id AS FriendshipId, 
                             u.DisplayName, 
@@ -100,35 +92,79 @@ namespace btl_lttq.Friendprofile
                         JOIN Users u ON u.Id = f.RequesterId
                         WHERE f.AddresseeId = @userId AND f.Status = 0";
 
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand(sqlInvite, conn))
                     {
                         cmd.Parameters.AddWithValue("@userId", currentUserId);
-                        SqlDataReader reader = cmd.ExecuteReader();
-
-                        allRequests.Clear();
-                        while (reader.Read())
+                        using (SqlDataReader reader = cmd.ExecuteReader())
                         {
-                            allRequests.Add(new FriendRequest
+                            while (reader.Read())
                             {
-                                FriendshipId = reader.GetGuid(0),
-                                DisplayName = reader.GetString(1),
-                                AvatarUrl = reader.IsDBNull(2) ? null : reader.GetString(2),
-                                SenderId = reader.GetGuid(3),
-                                FriendUsername = reader.GetString(4)
-                            });
+                                all.Add(new FriendRequest
+                                {
+                                    FriendshipId = reader.GetGuid(0),
+                                    DisplayName = reader.GetString(1),
+                                    AvatarUrl = reader.IsDBNull(2) ? null : reader.GetString(2),
+                                    SenderId = reader.GetGuid(3),
+                                    FriendUsername = reader.GetString(4),
+                                    RequestType = "INVITE"
+                                });
+                            }
                         }
                     }
-                }
 
-                DisplayFriendRequests(allRequests);
+                    // 2. người chưa kết bạn + chưa pending 2 chiều + không phải chính mình
+                    string sqlNew = @"
+                        SELECT u.Id, u.DisplayName, u.AvatarUrl, u.UserName
+                        FROM Users u
+                        WHERE 
+                            u.Id IS NOT NULL
+                            AND u.Id <> @me
+                            AND u.Id NOT IN (
+                                SELECT 
+                                    CASE 
+                                        WHEN f.RequesterId = @me THEN f.AddresseeId
+                                        WHEN f.AddresseeId = @me THEN f.RequesterId
+                                    END
+                                FROM Friendships f
+                                WHERE (f.RequesterId = @me OR f.AddresseeId = @me)
+                                      AND f.Status IN (0,1)
+                            )
+                        ORDER BY u.DisplayName;";
+
+                    using (SqlCommand cmd2 = new SqlCommand(sqlNew, conn))
+                    {
+                        cmd2.Parameters.AddWithValue("@me", currentUserId);
+                        using (SqlDataReader reader = cmd2.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                all.Add(new FriendRequest
+                                {
+                                    FriendshipId = Guid.Empty,
+                                    DisplayName = reader.GetString(1),
+                                    AvatarUrl = reader.IsDBNull(2) ? null : reader.GetString(2),
+                                    SenderId = reader.GetGuid(0),
+                                    FriendUsername = reader.GetString(3),
+                                    RequestType = "SEND"
+                                });
+                            }
+                        }
+                    }
+
+                    allRequests = all
+                        .OrderByDescending(r => r.RequestType == "INVITE")
+                        .ThenBy(r => r.DisplayName)
+                        .ToList();
+
+                    DisplayFriendRequests(allRequests);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("❌ Lỗi tải lời mời: " + ex.Message);
+                MessageBox.Show("❌ Lỗi tải danh sách: " + ex.Message);
             }
         }
 
-        // 🔹 Hiển thị danh sách lời mời
         private void DisplayFriendRequests(List<FriendRequest> requests)
         {
             flowRequests.Controls.Clear();
@@ -136,95 +172,147 @@ namespace btl_lttq.Friendprofile
 
             foreach (var req in requests)
             {
-                Panel p = new Panel();
-                p.Width = flowRequests.Width - 35;
-                p.Height = 70;
-                p.Margin = new Padding(0, 0, 0, 10);
-                p.BackColor = Color.WhiteSmoke;
+                Panel p = new Panel
+                {
+                    Width = flowRequests.Width - 35,
+                    Height = 70,
+                    Margin = new Padding(0, 0, 0, 10),
+                    BackColor = Color.WhiteSmoke
+                };
 
-                // Avatar
-                PictureBox avatar = new PictureBox();
-                avatar.Size = new Size(50, 50);
-                avatar.Location = new Point(10, 10);
-                avatar.SizeMode = PictureBoxSizeMode.Zoom;
+                // avatar
+                PictureBox avatar = new PictureBox
+                {
+                    Size = new Size(50, 50),
+                    Location = new Point(10, 10),
+                    SizeMode = PictureBoxSizeMode.Zoom
+                };
                 string path = Path.Combine(Application.StartupPath, "Images", req.AvatarUrl ?? "");
                 if (File.Exists(path))
                     avatar.Image = Image.FromFile(path);
                 else
                     avatar.BackColor = Color.LightGray;
-
                 avatar.Paint += (s, e) =>
                 {
-                    System.Drawing.Drawing2D.GraphicsPath gp = new System.Drawing.Drawing2D.GraphicsPath();
+                    var gp = new System.Drawing.Drawing2D.GraphicsPath();
                     gp.AddEllipse(0, 0, avatar.Width - 1, avatar.Height - 1);
                     avatar.Region = new Region(gp);
                 };
 
-                // Tên
-                Label lblName = new Label();
-                lblName.Text = req.DisplayName;
-                lblName.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-                lblName.AutoSize = true;
-                lblName.Location = new Point(70, 20);
-
-                // Nút “Chấp nhận”
-                Button btnAccept = new Button();
-                btnAccept.Text = "Chấp nhận";
-                btnAccept.Font = new Font("Segoe UI", 9);
-                btnAccept.ForeColor = Color.White;
-                btnAccept.BackColor = Color.RoyalBlue;
-                btnAccept.FlatStyle = FlatStyle.Flat;
-                btnAccept.FlatAppearance.BorderSize = 0;
-                btnAccept.Size = new Size(90, 30);
-                btnAccept.Location = new Point(p.Width - 270, 20);
-                btnAccept.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-                btnAccept.Click += (s, e) => AcceptRequest(req.FriendshipId);
-
-                // ✅ Nút “Thông tin”
-                Button btnInfo = new Button();
-                btnInfo.Text = "Thông tin";
-                btnInfo.Font = new Font("Segoe UI", 9);
-                btnInfo.ForeColor = Color.White;
-                btnInfo.BackColor = Color.MediumSeaGreen;
-                btnInfo.FlatStyle = FlatStyle.Flat;
-                btnInfo.FlatAppearance.BorderSize = 0;
-                btnInfo.Size = new Size(90, 30);
-                btnInfo.Location = new Point(p.Width - 180, 20);
-                btnInfo.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-                btnInfo.Click += (s, e) =>
+                Label lblName = new Label
                 {
-                    try
-                    {
-                        var profileForm = new ProfileFriendForm(req.SenderId);
-                        profileForm.StartPosition = FormStartPosition.CenterScreen;
-                        profileForm.ShowDialog();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("❌ Không thể mở thông tin bạn: " + ex.Message);
-                    }
+                    Text = req.DisplayName,
+                    Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                    AutoSize = true,
+                    Location = new Point(70, 20)
                 };
 
-                // Nút “Xóa”
-                Button btnDelete = new Button();
-                btnDelete.Text = "Xóa";
-                btnDelete.Font = new Font("Segoe UI", 9);
-                btnDelete.ForeColor = Color.White;
-                btnDelete.BackColor = Color.LightCoral;
-                btnDelete.FlatStyle = FlatStyle.Flat;
-                btnDelete.FlatAppearance.BorderSize = 0;
-                btnDelete.Size = new Size(80, 30);
-                btnDelete.Location = new Point(p.Width - 90, 20);
-                btnDelete.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-                btnDelete.Click += (s, e) => DeleteRequest(req.FriendshipId);
+                // nút thông tin (giữ lại)
+                Button btnInfo = new Button
+                {
+                    Text = "Thông tin",
+                    Font = new Font("Segoe UI", 9),
+                    ForeColor = Color.White,
+                    BackColor = Color.MediumSeaGreen,
+                    FlatStyle = FlatStyle.Flat,
+                    Size = new Size(90, 30),
+                    Location = new Point(p.Width - 220, 20),
+                    Anchor = AnchorStyles.Top | AnchorStyles.Right
+                };
+                btnInfo.FlatAppearance.BorderSize = 0;
+                btnInfo.Click += (s, e) =>
+                {
+                    var profileForm = new ProfileFriendForm(req.SenderId);
+                    profileForm.StartPosition = FormStartPosition.CenterScreen;
+                    profileForm.ShowDialog();
+                };
 
-                // Thêm vào panel
+                if (req.RequestType == "INVITE")
+                {
+                    // lời mời đến
+                    Button btnAccept = new Button
+                    {
+                        Text = "Chấp nhận",
+                        Font = new Font("Segoe UI", 9),
+                        ForeColor = Color.White,
+                        BackColor = Color.RoyalBlue,
+                        FlatStyle = FlatStyle.Flat,
+                        Size = new Size(90, 30),
+                        Location = new Point(p.Width - 320, 20),
+                        Anchor = AnchorStyles.Top | AnchorStyles.Right
+                    };
+                    btnAccept.FlatAppearance.BorderSize = 0;
+                    btnAccept.Click += (s, e) => AcceptRequest(req.FriendshipId);
+
+                    Button btnDelete = new Button
+                    {
+                        Text = "Xóa",
+                        Font = new Font("Segoe UI", 9),
+                        ForeColor = Color.White,
+                        BackColor = Color.LightCoral,
+                        FlatStyle = FlatStyle.Flat,
+                        Size = new Size(80, 30),
+                        Location = new Point(p.Width - 120, 20),
+                        Anchor = AnchorStyles.Top | AnchorStyles.Right
+                    };
+                    btnDelete.FlatAppearance.BorderSize = 0;
+                    btnDelete.Click += (s, e) => DeleteRequest(req.FriendshipId);
+
+                    p.Controls.Add(btnAccept);
+                    p.Controls.Add(btnInfo);
+                    p.Controls.Add(btnDelete);
+                }
+                else
+                {
+                    // người có thể gửi lời mời
+                    Button btnSend = new Button
+                    {
+                        Text = "+ Gửi lời mời",
+                        Font = new Font("Segoe UI", 9),
+                        ForeColor = Color.White,
+                        BackColor = Color.RoyalBlue,
+                        FlatStyle = FlatStyle.Flat,
+                        Size = new Size(110, 30),
+                        Location = new Point(p.Width - 120, 20),
+                        Anchor = AnchorStyles.Top | AnchorStyles.Right
+                    };
+                    btnSend.FlatAppearance.BorderSize = 0;
+                    btnSend.Click += (s, e) => SendFriendRequest(req.SenderId);
+
+                    p.Controls.Add(btnInfo);
+                    p.Controls.Add(btnSend);
+                }
+
                 p.Controls.Add(avatar);
                 p.Controls.Add(lblName);
-                p.Controls.Add(btnAccept);
-                p.Controls.Add(btnInfo);
-                p.Controls.Add(btnDelete);
                 flowRequests.Controls.Add(p);
+            }
+        }
+
+        private void SendFriendRequest(Guid receiverId)
+        {
+            try
+            {
+                Guid currentUserId = _currentUserId != Guid.Empty ? _currentUserId : GetUserId(_currentUsername ?? "anninh");
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string sql = @"
+                        INSERT INTO Friendships (Id, RequesterId, AddresseeId, Status, CreatedAt)
+                        VALUES (NEWID(), @from, @to, 0, SYSDATETIME())";
+                    SqlCommand cmd = new SqlCommand(sql, conn);
+                    cmd.Parameters.AddWithValue("@from", currentUserId);
+                    cmd.Parameters.AddWithValue("@to", receiverId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                MessageBox.Show("✅ Đã gửi lời mời kết bạn!");
+                LoadFriendRequests(currentUserId);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("❌ Lỗi khi gửi lời mời: " + ex.Message);
             }
         }
 
@@ -235,15 +323,14 @@ namespace btl_lttq.Friendprofile
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    string updateSql = "UPDATE Friendships SET Status = 1, UpdatedAt = SYSDATETIME() WHERE Id = @id";
-                    SqlCommand updateCmd = new SqlCommand(updateSql, conn);
-                    updateCmd.Parameters.AddWithValue("@id", friendshipId);
-                    updateCmd.ExecuteNonQuery();
+                    SqlCommand cmd = new SqlCommand("UPDATE Friendships SET Status=1, UpdatedAt=SYSDATETIME() WHERE Id=@id", conn);
+                    cmd.Parameters.AddWithValue("@id", friendshipId);
+                    cmd.ExecuteNonQuery();
                 }
 
-                MessageBox.Show("✅ Đã chấp nhận lời mời kết bạn!");
-                LoadFriendRequests();
-
+                MessageBox.Show("✅ Đã chấp nhận!");
+                var uid = _currentUserId != Guid.Empty ? _currentUserId : GetUserId(_currentUsername ?? "anninh");
+                LoadFriendRequests(uid);
                 _friendListForm?.ReloadFriends();
             }
             catch (Exception ex)
@@ -259,17 +346,18 @@ namespace btl_lttq.Friendprofile
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    SqlCommand cmd = new SqlCommand("DELETE FROM Friendships WHERE Id = @id", conn);
+                    SqlCommand cmd = new SqlCommand("DELETE FROM Friendships WHERE Id=@id", conn);
                     cmd.Parameters.AddWithValue("@id", friendshipId);
                     cmd.ExecuteNonQuery();
                 }
 
                 MessageBox.Show("🗑️ Đã xóa lời mời!");
-                LoadFriendRequests();
+                var uid = _currentUserId != Guid.Empty ? _currentUserId : GetUserId(_currentUsername ?? "anninh");
+                LoadFriendRequests(uid);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("❌ Lỗi khi xóa lời mời: " + ex.Message);
+                MessageBox.Show("❌ Lỗi khi xóa: " + ex.Message);
             }
         }
 
@@ -295,7 +383,7 @@ namespace btl_lttq.Friendprofile
         private void btnSearch_Click(object sender, EventArgs e)
         {
             string keyword = txtSearch.Text.Trim().ToLower();
-            if (string.IsNullOrEmpty(keyword) || txtSearch.Text == "Tìm lời kết bạn")
+            if (string.IsNullOrEmpty(keyword) || txtSearch.Text == "Tìm lời kết bạn hoặc người dùng")
             {
                 DisplayFriendRequests(allRequests);
                 return;
@@ -312,7 +400,7 @@ namespace btl_lttq.Friendprofile
             DisplayFriendRequests(filtered);
 
             if (filtered.Count == 0)
-                MessageBox.Show("Không tìm thấy lời mời phù hợp.", "Thông báo");
+                MessageBox.Show("Không tìm thấy người phù hợp.", "Thông báo");
         }
 
         private static string RemoveDiacritics(string text)
@@ -328,6 +416,9 @@ namespace btl_lttq.Friendprofile
             }
             return sb.ToString().Normalize(NormalizationForm.FormC);
         }
+
+        private void RemovePlaceholder(object sender, EventArgs e) { /* ... */ }
+        private void AddPlaceholder(object sender, EventArgs e) { /* ... */ }
     }
 
     public class FriendRequest
@@ -336,6 +427,7 @@ namespace btl_lttq.Friendprofile
         public Guid SenderId { get; set; }
         public string DisplayName { get; set; }
         public string AvatarUrl { get; set; }
-        public string FriendUsername { get; set; } // ✅ thêm để mở ProfileFriendForm
+        public string FriendUsername { get; set; }
+        public string RequestType { get; set; }
     }
 }

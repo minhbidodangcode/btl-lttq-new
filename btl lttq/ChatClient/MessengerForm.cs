@@ -1,6 +1,6 @@
 ﻿using btl_lttq.Data;
 ﻿using btl_lttq.ChatClient;
-using btl_lttq.Data;
+using btl_lttq.Friendprofile;
 using System;
 using System.ComponentModel;
 using System.Data.SqlClient;
@@ -23,6 +23,8 @@ namespace btl_lttq.ChatClient
 
         private bool _infoVisible = true;
         private int _rightPanelWidth = 260;
+
+        private string _currentUserNameOrEmail;
 
         // nhớ background theo từng hội thoại
         private readonly System.Collections.Generic.Dictionary<Guid, string> _convBack =
@@ -52,6 +54,11 @@ namespace btl_lttq.ChatClient
 
         // ─── ctor ────────────────────────────────────────────
         // ctor nhận sẵn userId từ form login
+        public MessengerForm(Guid userId, string userNameOrEmail) : this()
+        {
+            _currentUserId = userId;
+            _currentUserNameOrEmail = userNameOrEmail;
+        }
         public MessengerForm(Guid userId) : this()
         {
             _currentUserId = userId;
@@ -164,9 +171,9 @@ namespace btl_lttq.ChatClient
             // Nút "Bạn bè" → mở danh sách bạn bè
             btnFriends.Click += (s, e) =>
             {
-                var friendList = new Friendprofile.FriendListForm();
+                var friendList = new FriendListForm(_currentUserId, _currentUserNameOrEmail);
                 friendList.StartPosition = FormStartPosition.CenterScreen;
-                friendList.Show(); // không dùng ShowDialog để không chặn MessengerForm
+                friendList.Show();
             };
 
 
@@ -833,7 +840,7 @@ ORDER BY a.Id DESC;";
             panelMessages.Invalidate();
             foreach (Control c in panelMessages.Controls)
             {
-                if (c is MessageBubble mb)
+                if (c is MessageBubble mb && !mb.IsDisposed)
                     mb.RefreshLayout();
             }
         }
@@ -891,30 +898,70 @@ ORDER BY a.Id DESC;";
 
         private void ApplyPalette(Palette p)
         {
+            // nền tổng
             this.BackColor = p.WindowBack;
-            panelLeft.BackColor = p.SidebarBack;
-            panelLeftTop.BackColor = p.HeaderBack;
-            panelLeftBottom.BackColor = p.HeaderBack;
-            lvConversations.BackColor = p.SidebarBack;
 
-            panelCenter.BackColor = p.WindowBack;
-            headerPanel.BackColor = p.HeaderBack;
+            // sidebar
+            panelLeft.BackColor = p.SidebarBack;
+            panelLeftTop.BackColor = p.SidebarBack;
+            lvConversations.BackColor = p.MessagesBack; // hoặc p.SidebarBack tùy bạn
+            lvConversations.ForeColor = p.TextPrimary;
+
+            // trung tâm
+            panelCenter.BackColor = p.MessagesBack;
+            headerPanel.BackColor = p.HeaderBack;         // 👈 quan trọng nhất
             lblName.ForeColor = p.TextPrimary;
             lblStatus.ForeColor = p.TextSecondary;
 
+            // khung nhập chat
             inputPanel.BackColor = p.InputBack;
+            txtMessage.BackColor = Color.White;
+            txtMessage.ForeColor = Color.Black;
+
             btnSend.BackColor = p.ButtonPrimary;
             btnSend.ForeColor = p.ButtonPrimaryText;
 
-            panelRight.BackColor = p.HeaderBack;
+            // panel phải
+            panelRight.BackColor = p.SidebarBack;
             lblInfoTitle.ForeColor = p.TextPrimary;
-            lblParticipants.ForeColor = p.TextPrimary;
-            lblSharedFiles.ForeColor = p.TextPrimary;
+            lblParticipants.ForeColor = p.TextSecondary;
+            lblSharedFiles.ForeColor = p.TextSecondary;
+            cboBackground.BackColor = Color.White;
+            cboBackground.ForeColor = Color.Black;
 
+            // cập nhật bubble theo palette mới
             foreach (Control c in panelMessages.Controls)
             {
-                if (c is MessageBubble b) b.ApplyTheme(p);
+                if (c is MessageBubble b && !b.IsDisposed)
+                    b.ApplyTheme(p);
             }
+
+            // thanh dưới trái vẫn giữ style riêng của bạn
+            StyleNavButton(btnFriends);
+            StyleNavButton(btnProfile);
+            StyleNavButton(btnSettings);
+        }
+
+        private void StyleNavButton(Button btn)
+        {
+            if (btn == null) return;
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderSize = 0;
+            btn.BackColor = Color.Transparent;
+            btn.ForeColor = Color.White;
+            btn.Cursor = Cursors.Hand;
+            btn.TextImageRelation = TextImageRelation.Overlay;
+            btn.Font = new Font("Segoe UI", 11f, FontStyle.Regular);
+
+            // hover
+            btn.MouseEnter += (s, e) =>
+            {
+                btn.BackColor = Color.FromArgb(55, 57, 60);
+            };
+            btn.MouseLeave += (s, e) =>
+            {
+                btn.BackColor = Color.Transparent;
+            };
         }
 
         // ───────────────────────────────────────────
@@ -988,10 +1035,13 @@ ORDER BY a.Id DESC;";
             public void RefreshLayout()
             {
                 if (Controls.Count == 0) return;
-                var container = Controls[0] as Panel;
+
+                var container = Controls[0] as Panel;   
                 if (container == null) return;
+
                 UpdateBubbleBounds(container);
             }
+
 
             private void UpdateBubbleBounds(Panel container)
             {
@@ -1120,49 +1170,14 @@ ORDER BY a.Id DESC;";
             {
                 file = (file ?? "").ToLowerInvariant();
 
-                if (file.Contains("love") || file.Contains("pink"))
-                {
-                    return new Palette
-                    {
-                        WindowBack = Color.White,
-                        SidebarBack = Color.FromArgb(245, 246, 248),
-                        HeaderBack = Color.White,
-                        MessagesBack = Color.White,
-                        InputBack = Color.FromArgb(255, 245, 248),
-                        TextPrimary = Color.Black,
-                        TextSecondary = Color.DimGray,
-                        ButtonPrimary = Color.FromArgb(255, 105, 180),
-                        ButtonPrimaryText = Color.White,
-                        BubbleMine = Color.FromArgb(255, 238, 246),
-                        BubbleOther = Color.FromArgb(255, 255, 255)
-                    };
-                }
-
-                if (file.Contains("doodle") || file.Contains("trochuyen") || file.Contains("snoopy"))
-                {
-                    return new Palette
-                    {
-                        WindowBack = Color.White,
-                        SidebarBack = Color.FromArgb(245, 246, 248),
-                        HeaderBack = Color.White,
-                        MessagesBack = Color.White,
-                        InputBack = Color.FromArgb(250, 250, 250),
-                        TextPrimary = Color.Black,
-                        TextSecondary = Color.DimGray,
-                        ButtonPrimary = Color.FromArgb(25, 118, 210),
-                        ButtonPrimaryText = Color.White,
-                        BubbleMine = Color.FromArgb(210, 232, 255),
-                        BubbleOther = Color.FromArgb(240, 244, 248)
-                    };
-                }
-
+                // 1) nền gấu
                 if (file.Contains("bear"))
                 {
                     return new Palette
                     {
                         WindowBack = Color.White,
                         SidebarBack = Color.FromArgb(245, 246, 248),
-                        HeaderBack = Color.White,
+                        HeaderBack = Color.FromArgb(255, 248, 230),   // kem giống nền gấu
                         MessagesBack = Color.White,
                         InputBack = Color.FromArgb(250, 250, 245),
                         TextPrimary = Color.Black,
@@ -1174,12 +1189,122 @@ ORDER BY a.Id DESC;";
                     };
                 }
 
-                return For(AppTheme.Light);
+                // 2) doodle nền trắng xanh (Backgrounddoodle.jpg)
+                if (file.Contains("doodle") && !file.Contains("doodle2"))
+                {
+                    return new Palette
+                    {
+                        WindowBack = Color.White,
+                        SidebarBack = Color.FromArgb(245, 246, 248),
+                        HeaderBack = Color.FromArgb(230, 239, 255),  // trắng hơi xanh cho hợp icon xanh
+                        MessagesBack = Color.White,
+                        InputBack = Color.FromArgb(245, 246, 250),
+                        TextPrimary = Color.Black,
+                        TextSecondary = Color.DimGray,
+                        ButtonPrimary = Color.FromArgb(25, 118, 210),
+                        ButtonPrimaryText = Color.White,
+                        BubbleMine = Color.FromArgb(210, 232, 255),
+                        BubbleOther = Color.FromArgb(240, 244, 248)
+                    };
+                }
+
+                // 3) doodle màu (BackgroundDoodle2.jpg)
+                if (file.Contains("doodle2"))
+                {
+                    return new Palette
+                    {
+                        WindowBack = Color.White,
+                        SidebarBack = Color.FromArgb(245, 246, 248),
+                        HeaderBack = Color.FromArgb(205, 226, 245),  // xanh nhạt giống hình thứ 3 bạn gửi
+                        MessagesBack = Color.White,
+                        InputBack = Color.FromArgb(245, 246, 250),
+                        TextPrimary = Color.Black,
+                        TextSecondary = Color.DimGray,
+                        ButtonPrimary = Color.FromArgb(25, 118, 210),
+                        ButtonPrimaryText = Color.White,
+                        BubbleMine = Color.FromArgb(210, 232, 255),
+                        BubbleOther = Color.FromArgb(240, 244, 248)
+                    };
+                }
+
+                // 4) love / hồng
+                if (file.Contains("love") || file.Contains("pink"))
+                {
+                    return new Palette
+                    {
+                        WindowBack = Color.White,
+                        SidebarBack = Color.FromArgb(255, 242, 248),
+                        HeaderBack = Color.FromArgb(255, 190, 220),  // hồng đậm hơn để header nổi
+                        MessagesBack = Color.White,
+                        InputBack = Color.FromArgb(255, 245, 248),
+                        TextPrimary = Color.Black,
+                        TextSecondary = Color.DimGray,
+                        ButtonPrimary = Color.FromArgb(255, 105, 180),
+                        ButtonPrimaryText = Color.White,
+                        BubbleMine = Color.FromArgb(255, 225, 238),
+                        BubbleOther = Color.FromArgb(255, 255, 255)
+                    };
+                }
+
+                // 5) snoopy
+                if (file.Contains("snoopy"))
+                {
+                    return new Palette
+                    {
+                        WindowBack = Color.White,
+                        SidebarBack = Color.FromArgb(245, 246, 248),
+                        HeaderBack = Color.FromArgb(242, 242, 242),   // xám rất nhạt giống nền snoopy
+                        MessagesBack = Color.White,
+                        InputBack = Color.FromArgb(245, 246, 248),
+                        TextPrimary = Color.Black,
+                        TextSecondary = Color.DimGray,
+                        ButtonPrimary = Color.FromArgb(25, 118, 210),
+                        ButtonPrimaryText = Color.White,
+                        BubbleMine = Color.FromArgb(230, 236, 244),
+                        BubbleOther = Color.FromArgb(255, 255, 255)
+                    };
+                }
+
+                // 6) "trochuyen" (bong bóng chat xanh)
+                if (file.Contains("trochuyen"))
+                {
+                    return new Palette
+                    {
+                        WindowBack = Color.White,
+                        SidebarBack = Color.FromArgb(245, 246, 248),
+                        HeaderBack = Color.FromArgb(210, 226, 248),   // xanh nhạt như ảnh cuối
+                        MessagesBack = Color.White,
+                        InputBack = Color.FromArgb(245, 246, 250),
+                        TextPrimary = Color.Black,
+                        TextSecondary = Color.DimGray,
+                        ButtonPrimary = Color.FromArgb(25, 118, 210),
+                        ButtonPrimaryText = Color.White,
+                        BubbleMine = Color.FromArgb(210, 232, 255),
+                        BubbleOther = Color.FromArgb(240, 244, 248)
+                    };
+                }
+
+                // Mặc định: nền trắng
+                return new Palette
+                {
+                    WindowBack = Color.White,
+                    SidebarBack = Color.FromArgb(245, 246, 248),
+                    HeaderBack = Color.White,              // 👈 header trắng
+                    MessagesBack = Color.White,
+                    InputBack = Color.FromArgb(250, 250, 250),
+                    TextPrimary = Color.Black,
+                    TextSecondary = Color.DimGray,
+                    ButtonPrimary = Color.FromArgb(25, 118, 210),
+                    ButtonPrimaryText = Color.White,
+                    BubbleMine = Color.FromArgb(225, 240, 255),
+                    BubbleOther = Color.FromArgb(240, 244, 248)
+                };
+
             }
         }
 
-        // ───────────────────────────────────────────
-        private class MemberListItem
+            // ───────────────────────────────────────────
+            private class MemberListItem
         {
             public Guid UserId;
             public string Text;
@@ -1502,6 +1627,5 @@ SELECT @newId;
                 MessageBox.Show("Không tạo được nhóm: " + ex.Message);
             }
         }
-
     }
 }
