@@ -47,9 +47,10 @@
             this.lvGroups.ContextMenuStrip = this.contextGroups;
             this.lvGroups.FullRowSelect = true;
             this.lvGroups.HideSelection = false;
-            this.lvGroups.Location = new System.Drawing.Point(0, 59);
+            this.lvGroups.Location = new System.Drawing.Point(11, 49);
+            this.lvGroups.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.lvGroups.Name = "lvGroups";
-            this.lvGroups.Size = new System.Drawing.Size(420, 389);
+            this.lvGroups.Size = new System.Drawing.Size(316, 317);
             this.lvGroups.TabIndex = 0;
             this.lvGroups.UseCompatibleStateImageBehavior = false;
             this.lvGroups.SelectedIndexChanged += new System.EventHandler(this.lvGroups_SelectedIndexChanged);
@@ -61,19 +62,19 @@
             this.thêmNhómToolStripMenuItem,
             this.xóaNhómToolStripMenuItem});
             this.contextGroups.Name = "contextGroups";
-            this.contextGroups.Size = new System.Drawing.Size(158, 52);
+            this.contextGroups.Size = new System.Drawing.Size(140, 48);
             // 
             // thêmNhómToolStripMenuItem
             // 
             this.thêmNhómToolStripMenuItem.Name = "thêmNhómToolStripMenuItem";
-            this.thêmNhómToolStripMenuItem.Size = new System.Drawing.Size(157, 24);
+            this.thêmNhómToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
             this.thêmNhómToolStripMenuItem.Text = "Thêm nhóm";
             this.thêmNhómToolStripMenuItem.Click += new System.EventHandler(this.thêmNhómToolStripMenuItem_Click);
             // 
             // xóaNhómToolStripMenuItem
             // 
             this.xóaNhómToolStripMenuItem.Name = "xóaNhómToolStripMenuItem";
-            this.xóaNhómToolStripMenuItem.Size = new System.Drawing.Size(157, 24);
+            this.xóaNhómToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
             this.xóaNhómToolStripMenuItem.Text = "Xóa nhóm";
             this.xóaNhómToolStripMenuItem.Click += new System.EventHandler(this.xóaNhómToolStripMenuItem_Click);
             // 
@@ -81,10 +82,10 @@
             // 
             this.lbMembers.ContextMenuStrip = this.contextMembers;
             this.lbMembers.FormattingEnabled = true;
-            this.lbMembers.ItemHeight = 16;
-            this.lbMembers.Location = new System.Drawing.Point(426, 60);
+            this.lbMembers.Location = new System.Drawing.Point(331, 49);
+            this.lbMembers.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.lbMembers.Name = "lbMembers";
-            this.lbMembers.Size = new System.Drawing.Size(406, 388);
+            this.lbMembers.Size = new System.Drawing.Size(306, 316);
             this.lbMembers.TabIndex = 1;
             // 
             // contextMembers
@@ -94,19 +95,19 @@
             this.thêmThànhViênToolStripMenuItem,
             this.xóaThànhViênToolStripMenuItem});
             this.contextMembers.Name = "contextMembers";
-            this.contextMembers.Size = new System.Drawing.Size(188, 52);
+            this.contextMembers.Size = new System.Drawing.Size(164, 48);
             // 
             // thêmThànhViênToolStripMenuItem
             // 
             this.thêmThànhViênToolStripMenuItem.Name = "thêmThànhViênToolStripMenuItem";
-            this.thêmThànhViênToolStripMenuItem.Size = new System.Drawing.Size(187, 24);
+            this.thêmThànhViênToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
             this.thêmThànhViênToolStripMenuItem.Text = "Thêm thành viên";
             this.thêmThànhViênToolStripMenuItem.Click += new System.EventHandler(this.thêmThànhViênToolStripMenuItem_Click);
             // 
             // xóaThànhViênToolStripMenuItem
             // 
             this.xóaThànhViênToolStripMenuItem.Name = "xóaThànhViênToolStripMenuItem";
-            this.xóaThànhViênToolStripMenuItem.Size = new System.Drawing.Size(187, 24);
+            this.xóaThànhViênToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
             this.xóaThànhViênToolStripMenuItem.Text = "Xóa thành viên";
             this.xóaThànhViênToolStripMenuItem.Click += new System.EventHandler(this.xóaThànhViênToolStripMenuItem_Click);
             // 
@@ -115,21 +116,23 @@
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 19.8F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Italic))), System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.SystemColors.Highlight;
-            this.label1.Location = new System.Drawing.Point(274, 9);
+            this.label1.Location = new System.Drawing.Point(206, 7);
+            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(308, 38);
+            this.label1.Size = new System.Drawing.Size(257, 31);
             this.label1.TabIndex = 2;
             this.label1.Text = "Quản lý nhóm chat";
             // 
             // FormDoanChat
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.RosyBrown;
-            this.ClientSize = new System.Drawing.Size(844, 480);
+            this.ClientSize = new System.Drawing.Size(658, 419);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.lbMembers);
             this.Controls.Add(this.lvGroups);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "FormDoanChat";
             this.Text = "FormDoanChat";
             this.Load += new System.EventHandler(this.FormDoanChat_Load);
