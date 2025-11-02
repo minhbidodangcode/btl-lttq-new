@@ -7,7 +7,11 @@ public static class AuthService
 {
     private static readonly string connectionString =
         ConfigurationManager.ConnectionStrings["MessengerDb"].ConnectionString;
-
+    public static Guid CurrentUserId { get; private set; }
+    public static void Logout()
+    {
+        CurrentUserId = Guid.Empty;
+    }
     // 🔹 Đăng nhập
     public static bool Login(string email, string password)
     {

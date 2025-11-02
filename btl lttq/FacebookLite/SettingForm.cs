@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.Drawing.Text;
+using btl_lttq.Login; // để gọi LoginForm
 
 namespace btl_lttq.FacebookLite
 {
@@ -15,21 +16,19 @@ namespace btl_lttq.FacebookLite
         private Panel header;
 
         private AppSettings _settings;
-        private string _themePreview;
         private bool _soundOnPreview;
         private string _statusPreview;
-        private string _languagePreview;
+        private string _languagePreview;   // chỉ để hiển thị UI theo tiếng Việt / Anh, không cho đổi
         private string _fontFamilyPreview;
 
-        private ComboBox cmbLang, cmbFontFamily;
+        private ComboBox cmbFontFamily;
 
-        private Label lblThemeLeft, lblSoundLeft, lblStatusLeft, lblLangLeft, lblFontLeft;
-        private Label lThLight, lThDark, lSndOn, lSndOff, lSttOn, lSttOff;
-        private Button btnApply, btnCancel;
+        private Label lblSoundLeft, lblStatusLeft, lblFontLeft;
+        private Label lSndOn, lSndOff, lSttOn, lSttOff;
+        private Button btnApply, btnCancel, btnLogout;
 
-        private SettingCard thLight, thDark, sndOn, sndOff, sttOn, sttOff;
+        private SettingCard sndOn, sndOff, sttOn, sttOff;
 
-        // ---- Glyph support check to filter font list (avoid missing Vietnamese diacritics) ----
         [System.Runtime.InteropServices.DllImport("gdi32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
         static extern int GetGlyphIndicesW(IntPtr hdc, string text, int count, ushort[] pgi, int flags);
 
@@ -38,7 +37,7 @@ namespace btl_lttq.FacebookLite
             try
             {
                 using (var f = new Font(familyName, 10f, FontStyle.Regular, GraphicsUnit.Point))
-                using (var bmp = new Bitmap(1,1))
+                using (var bmp = new Bitmap(1, 1))
                 using (var g = Graphics.FromImage(bmp))
                 {
                     IntPtr hdc = g.GetHdc();
@@ -51,7 +50,7 @@ namespace btl_lttq.FacebookLite
                     g.ReleaseHdc(hdc);
                     if (ret == 0) return false;
                     for (int i = 0; i < gi.Length; i++)
-                        if (gi[i] == 0xFFFF) return false; // missing glyph
+                        if (gi[i] == 0xFFFF) return false;
                     return true;
                 }
             }
@@ -63,7 +62,6 @@ namespace btl_lttq.FacebookLite
             [System.Runtime.InteropServices.DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr hObject);
         }
 
-
         public SettingForm()
         {
             InitializeComponent();
@@ -73,11 +71,10 @@ namespace btl_lttq.FacebookLite
             MaximizeBox = false;
             MinimizeBox = false;
 
-            _settings          = AppSettingsStorage.Load();
-            _themePreview      = string.IsNullOrEmpty(_settings.Theme) ? "Light" : _settings.Theme;
-            _soundOnPreview    = _settings.NotificationSound;
-            _statusPreview     = string.IsNullOrEmpty(_settings.ServerMode) ? "Active" : (_settings.ServerMode == "Inactive" ? "Inactive" : "Active");
-            _languagePreview   = string.IsNullOrEmpty(_settings.Language) ? "vi-VN" : _settings.Language;
+            _settings = AppSettingsStorage.Load();
+            _soundOnPreview = _settings.NotificationSound;
+            _statusPreview = string.IsNullOrEmpty(_settings.ServerMode) ? "Active" : (_settings.ServerMode == "Inactive" ? "Inactive" : "Active");
+            _languagePreview = string.IsNullOrEmpty(_settings.Language) ? "vi-VN" : _settings.Language;
             _fontFamilyPreview = string.IsNullOrEmpty(_settings.FontFamily) ? this.Font.FontFamily.Name : _settings.FontFamily;
 
             Shown += (s, e) =>
@@ -110,117 +107,117 @@ namespace btl_lttq.FacebookLite
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
                 AutoScroll = true,
-                Padding = new Padding(16, 46, 16, 16), // thêm top padding rộng hơn để card không bị ăn mất viền
-                BackColor = Color.White
+                Padding = new Padding(16, 46, 16, 16),
+                BackColor = Color.White,
+                AutoScrollMargin = new Size(0, 8)
             };
-            // tăng vùng scroll margin để không cắt viền khi chạm vùng cuộn
-            flow.AutoScrollMargin = new Size(0, 8);
             Controls.Add(flow);
 
             bottomBar = new Panel { Dock = DockStyle.Bottom, Height = 64, BackColor = Color.White, Padding = new Padding(16) };
-            btnApply  = new Button { Text = "Áp dụng", Width = 110, Height = 36, Anchor = AnchorStyles.Right | AnchorStyles.Bottom };
-            btnCancel = new Button { Text = "Hủy",     Width = 90,  Height = 36, Anchor = AnchorStyles.Right | AnchorStyles.Bottom };
+            btnApply = new Button { Text = "Áp dụng", Width = 110, Height = 36, Anchor = AnchorStyles.Right | AnchorStyles.Bottom };
+            btnCancel = new Button { Text = "Hủy", Width = 90, Height = 36, Anchor = AnchorStyles.Right | AnchorStyles.Bottom };
+            btnLogout = new Button { Text = "Đăng xuất", Width = 110, Height = 36, Anchor = AnchorStyles.Left | AnchorStyles.Bottom };
 
             bottomBar.Controls.Add(btnApply);
             bottomBar.Controls.Add(btnCancel);
+            bottomBar.Controls.Add(btnLogout);
             Controls.Add(bottomBar);
             bottomBar.BringToFront();
 
             bottomBar.Resize += (s, e) =>
             {
+                btnLogout.Left = 16;
+                btnLogout.Top = 14;
+
                 btnCancel.Left = bottomBar.Width - btnCancel.Width - 16;
-                btnApply.Left  = btnCancel.Left - btnApply.Width - 8;
+                btnApply.Left = btnCancel.Left - btnApply.Width - 8;
                 btnCancel.Top = btnApply.Top = 14;
             };
+
+            // đặt lần đầu
+            btnLogout.Left = 16;
+            btnLogout.Top = 14;
             btnCancel.Left = bottomBar.Width - btnCancel.Width - 16;
-            btnApply.Left  = btnCancel.Left - btnApply.Width - 8;
+            btnApply.Left = btnCancel.Left - btnApply.Width - 8;
             btnCancel.Top = btnApply.Top = 14;
 
             btnApply.Click += (s, e) => { SaveOnly(); DialogResult = DialogResult.OK; Close(); };
-            btnCancel.Click+= (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
+            btnCancel.Click += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
+
+            btnLogout.Click += (s, e) =>
+            {
+                if (MessageBox.Show("Bạn chắc chắn muốn đăng xuất?", "Đăng xuất",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                    return;
+
+                Application.Restart();
+
+            };
+
         }
 
-        
-private SettingCard MakeRowCard(Label leftLabel, Control rightControl, bool isFirst = false)
-{
-    var card = new SettingCard
-    {
-        Width = 820,
-        Height = 96,
-        BaseColor = Color.FromArgb(248, 249, 250),
-        BorderColor = Color.FromArgb(210, 213, 218),
-        BorderThickness = 1,
-        HoverLighten = 0.06f,
-        Margin = isFirst ? new Padding(12, 28, 12, 8) : new Padding(12) // +10px
-    };
+        private SettingCard MakeRowCard(Label leftLabel, Control rightControl, bool isFirst = false)
+        {
+            var card = new SettingCard
+            {
+                Width = 820,
+                Height = 96,
+                BaseColor = Color.FromArgb(248, 249, 250),
+                BorderColor = Color.FromArgb(210, 213, 218),
+                BorderThickness = 1,
+                HoverLighten = 0.06f,
+                Margin = isFirst ? new Padding(12, 28, 12, 8) : new Padding(12)
+            };
 
-    var row = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24, 12, 24, 12), BackColor = Color.Transparent };
+            var row = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24, 12, 24, 12), BackColor = Color.Transparent };
 
-    // Freeze left label width so different fonts don't push layout
-    leftLabel.AutoSize = false;
-    leftLabel.Width = 140;
-    leftLabel.AutoEllipsis = true;
-    leftLabel.TextAlign = ContentAlignment.MiddleLeft;
-    leftLabel.Left = 0;
-    leftLabel.Top = 0;
-    leftLabel.BackColor = Color.Transparent;
+            leftLabel.AutoSize = false;
+            leftLabel.Width = 140;
+            leftLabel.AutoEllipsis = true;
+            leftLabel.TextAlign = ContentAlignment.MiddleLeft;
+            leftLabel.Left = 0;
+            leftLabel.Top = 0;
+            leftLabel.BackColor = Color.Transparent;
 
-    // Right control sticks to the right
-    rightControl.Anchor = AnchorStyles.Right | AnchorStyles.Top;
-    row.Controls.Add(leftLabel);
-    row.Controls.Add(rightControl);
-    card.Controls.Add(row);
+            rightControl.Anchor = AnchorStyles.Right | AnchorStyles.Top;
+            row.Controls.Add(leftLabel);
+            row.Controls.Add(rightControl);
+            card.Controls.Add(row);
 
-    void layout()
-    {
-        leftLabel.Top = (row.Height - leftLabel.Height) / 2;
-        rightControl.Left = row.Width - rightControl.Width;
-        rightControl.Top = (row.Height - rightControl.Height) / 2;
-    }
-    row.Resize += (s, e) => layout();
-    layout();
-    return card;
-}
-
+            void layout()
+            {
+                leftLabel.Top = (row.Height - leftLabel.Height) / 2;
+                rightControl.Left = row.Width - rightControl.Width;
+                rightControl.Top = (row.Height - rightControl.Height) / 2;
+            }
+            row.Resize += (s, e) => layout();
+            layout();
+            return card;
+        }
 
         private void BuildCards()
         {
-            var pnlTheme = BuildPills(out thLight, out thDark, 236, 42, out lThLight, out lThDark);
-            lblThemeLeft = new Label { Text = "Chủ đề" };
-            flow.Controls.Add(MakeRowCard(lblThemeLeft, pnlTheme, isFirst: true));
-            thLight.Click += (s, e) => SetTheme("Light");
-            thDark.Click  += (s, e) => SetTheme("Dark");
-            lThLight.Click += (s, e) => SetTheme("Light");
-            lThDark.Click  += (s, e) => SetTheme("Dark");
-
+            // 1) ÂM THANH
             var pnlSound = BuildPills(out sndOn, out sndOff, 236, 42, out lSndOn, out lSndOff);
             lblSoundLeft = new Label { Text = "Âm thanh" };
             lSndOn.Text = "Bật tiếng"; lSndOff.Text = "Tắt tiếng";
-            flow.Controls.Add(MakeRowCard(lblSoundLeft, pnlSound));
-            sndOn.Click  += (s, e) => SetSound(true);
+            flow.Controls.Add(MakeRowCard(lblSoundLeft, pnlSound, isFirst: true));
+            sndOn.Click += (s, e) => SetSound(true);
             sndOff.Click += (s, e) => SetSound(false);
             lSndOn.Click += (s, e) => SetSound(true);
-            lSndOff.Click+= (s, e) => SetSound(false);
+            lSndOff.Click += (s, e) => SetSound(false);
 
+            // 2) TRẠNG THÁI
             var pnlStatus = BuildPills(out sttOn, out sttOff, 236, 42, out lSttOn, out lSttOff);
             lblStatusLeft = new Label { Text = "Trạng thái" };
             lSttOn.Text = "Hoạt động"; lSttOff.Text = "Không hoạt động";
             flow.Controls.Add(MakeRowCard(lblStatusLeft, pnlStatus));
-            sttOn.Click  += (s, e) => SetStatus("Active");
+            sttOn.Click += (s, e) => SetStatus("Active");
             sttOff.Click += (s, e) => SetStatus("Inactive");
             lSttOn.Click += (s, e) => SetStatus("Active");
-            lSttOff.Click+= (s, e) => SetStatus("Inactive");
+            lSttOff.Click += (s, e) => SetStatus("Inactive");
 
-            lblLangLeft = new Label { Text = "Ngôn ngữ" };
-            cmbLang = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220 };
-            cmbLang.Items.AddRange(new object[] { "vi-VN", "en-US" });
-            cmbLang.SelectedIndexChanged += (s, e) =>
-            {
-                _languagePreview = (string)cmbLang.SelectedItem;
-                ApplyLocalization();
-            };
-            flow.Controls.Add(MakeRowCard(lblLangLeft, cmbLang));
-
+            // 3) PHÔNG CHỮ
             lblFontLeft = new Label { Text = "Phông chữ" };
             cmbFontFamily = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220 };
             using (var ifc = new InstalledFontCollection())
@@ -241,11 +238,11 @@ private SettingCard MakeRowCard(Label leftLabel, Control rightControl, bool isFi
         private Panel BuildPills(out SettingCard left, out SettingCard right, int pillWidth, int pillHeight, out Label leftLabel, out Label rightLabel)
         {
             var panel = new Panel { Width = pillWidth * 2 + 12, Height = pillHeight, BackColor = Color.Transparent };
-            left  = new SettingCard { Width = pillWidth, Height = pillHeight, BaseColor = Color.FromArgb(248, 249, 250), BorderColor = Color.FromArgb(210, 213, 218), BorderThickness = 1, HoverLighten = 0.06f, IsClickable = true, CornerRadius = pillHeight / 2 };
+            left = new SettingCard { Width = pillWidth, Height = pillHeight, BaseColor = Color.FromArgb(248, 249, 250), BorderColor = Color.FromArgb(210, 213, 218), BorderThickness = 1, HoverLighten = 0.06f, IsClickable = true, CornerRadius = pillHeight / 2 };
             right = new SettingCard { Width = pillWidth, Height = pillHeight, BaseColor = Color.FromArgb(248, 249, 250), BorderColor = Color.FromArgb(210, 213, 218), BorderThickness = 1, HoverLighten = 0.06f, IsClickable = true, CornerRadius = pillHeight / 2 };
 
-            leftLabel  = new Label { AutoSize = false, AutoEllipsis = true, Text = "Sáng", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.Transparent };
-            rightLabel = new Label { AutoSize = false, AutoEllipsis = true, Text = "Tối",  Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.Transparent };
+            leftLabel = new Label { AutoSize = false, AutoEllipsis = true, Text = "Trái", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.Transparent };
+            rightLabel = new Label { AutoSize = false, AutoEllipsis = true, Text = "Phải", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.Transparent };
 
             left.Controls.Add(leftLabel);
             right.Controls.Add(rightLabel);
@@ -260,11 +257,10 @@ private SettingCard MakeRowCard(Label leftLabel, Control rightControl, bool isFi
 
         private void UpdateFormColorsOnly()
         {
-            bool dark = _themePreview == "Dark";
-            var formBg     = dark ? Color.FromArgb(36, 36, 38) : Color.White;
-            var textCol    = dark ? Color.White : Color.Black;
-            var cardBg     = dark ? Color.FromArgb(46, 48, 52) : Color.FromArgb(248, 249, 250);
-            var cardBorder = dark ? Color.FromArgb(88, 90, 94) : Color.FromArgb(210, 213, 218);
+            var formBg = Color.White;
+            var textCol = Color.Black;
+            var cardBg = Color.FromArgb(248, 249, 250);
+            var cardBorder = Color.FromArgb(210, 213, 218);
 
             BackColor = formBg;
             ForeColor = textCol;
@@ -272,41 +268,29 @@ private SettingCard MakeRowCard(Label leftLabel, Control rightControl, bool isFi
             if (lblTitle != null) lblTitle.ForeColor = textCol;
             if (btnBack != null) btnBack.ForeColor = textCol;
             if (flow != null) flow.BackColor = formBg;
-            if (bottomBar != null) bottomBar.BackColor = dark ? Color.FromArgb(48, 49, 51) : Color.White;
+            if (bottomBar != null) bottomBar.BackColor = Color.White;
 
             foreach (SettingCard card in flow.Controls.OfType<SettingCard>())
             {
                 card.BaseColor = cardBg;
                 card.BorderColor = cardBorder;
-                card.HoverDarken = !dark; // light theme: darken 10%, dark theme: lighten 10%
+                card.HoverDarken = true;
                 card.Invalidate();
             }
-            foreach (Label lbl in flow.Controls.OfType<SettingCard>().SelectMany(c => c.Controls.OfType<Label>()))
-                lbl.ForeColor = textCol;
         }
 
         private void RedrawPillStates()
         {
-            var accent   = Color.FromArgb(0, 120, 215);
-            var idle     = _themePreview == "Dark" ? Color.WhiteSmoke : Color.FromArgb(248, 249, 250);
+            var accent = Color.FromArgb(0, 120, 215);
+            var idle = Color.FromArgb(248, 249, 250);
             var idleText = Color.Black;
-
-            bool isLight = _themePreview == "Light";
-            if (thLight != null && thDark != null)
-            {
-                thLight.BaseColor = isLight ? accent : idle;
-                thDark.BaseColor  = isLight ? idle  : accent;
-                foreach (Label l in thLight.Controls.OfType<Label>()) l.ForeColor = isLight ? Color.White : idleText;
-                foreach (Label l in thDark.Controls.OfType<Label>())  l.ForeColor = isLight ? idleText   : Color.White;
-                thLight.Invalidate(); thDark.Invalidate();
-            }
 
             if (sndOn != null && sndOff != null)
             {
-                sndOn.BaseColor  = _soundOnPreview ? accent : idle;
-                sndOff.BaseColor = _soundOnPreview ? idle   : accent;
+                sndOn.BaseColor = _soundOnPreview ? accent : idle;
+                sndOff.BaseColor = _soundOnPreview ? idle : accent;
                 foreach (Label l in sndOn.Controls.OfType<Label>()) l.ForeColor = _soundOnPreview ? Color.White : idleText;
-                foreach (Label l in sndOff.Controls.OfType<Label>()) l.ForeColor = _soundOnPreview ? idleText   : Color.White;
+                foreach (Label l in sndOff.Controls.OfType<Label>()) l.ForeColor = _soundOnPreview ? idleText : Color.White;
                 sndOn.Invalidate(); sndOff.Invalidate();
             }
 
@@ -321,16 +305,13 @@ private SettingCard MakeRowCard(Label leftLabel, Control rightControl, bool isFi
             }
         }
 
-        private void SetTheme(string mode) { _themePreview = (mode == "Dark") ? "Dark" : "Light"; UpdateFormColorsOnly(); RedrawPillStates(); }
-        private void SetSound(bool on)     { _soundOnPreview = on; RedrawPillStates(); }
-        private void SetStatus(string s)   { _statusPreview = (s == "Active") ? "Active" : "Inactive"; RedrawPillStates(); }
+        private void SetSound(bool on) { _soundOnPreview = on; RedrawPillStates(); }
+        private void SetStatus(string s) { _statusPreview = (s == "Active") ? "Active" : "Inactive"; RedrawPillStates(); }
 
         private void LoadPreviewValues()
         {
-            SetTheme(_themePreview);
             SetSound(_soundOnPreview);
             SetStatus(_statusPreview);
-            if (cmbLang != null) cmbLang.SelectedItem = _languagePreview;
             if (cmbFontFamily != null)
             {
                 var want = _fontFamilyPreview ?? this.Font.FontFamily.Name;
@@ -343,32 +324,27 @@ private SettingCard MakeRowCard(Label leftLabel, Control rightControl, bool isFi
         {
             bool vi = (_languagePreview ?? "vi-VN").StartsWith("vi");
 
-            lblTitle.Text      = vi ? "Cài đặt" : "Settings";
-            lblThemeLeft.Text  = vi ? "Chủ đề" : "Theme";
-            lblSoundLeft.Text  = vi ? "Âm thanh" : "Sound";
+            lblTitle.Text = vi ? "Cài đặt" : "Settings";
+            lblSoundLeft.Text = vi ? "Âm thanh" : "Sound";
             lblStatusLeft.Text = vi ? "Trạng thái" : "Status";
-            lblLangLeft.Text   = vi ? "Ngôn ngữ" : "Language";
-            lblFontLeft.Text   = vi ? "Phông chữ" : "Font";
+            lblFontLeft.Text = vi ? "Phông chữ" : "Font";
 
-            lThLight.Text = vi ? "Sáng" : "Light";
-            lThDark.Text  = vi ? "Tối"  : "Dark";
-            lSndOn.Text   = vi ? "Bật tiếng" : "Unmute";
-            lSndOff.Text  = vi ? "Tắt tiếng" : "Mute";
-            lSttOn.Text   = vi ? "Hoạt động" : "Active";
-            lSttOff.Text  = vi ? "Không hoạt động" : "Inactive";
+            lSndOn.Text = vi ? "Bật tiếng" : "Unmute";
+            lSndOff.Text = vi ? "Tắt tiếng" : "Mute";
+            lSttOn.Text = vi ? "Hoạt động" : "Active";
+            lSttOff.Text = vi ? "Không hoạt động" : "Inactive";
 
-            btnApply.Text  = vi ? "Áp dụng" : "Apply";
+            btnApply.Text = vi ? "Áp dụng" : "Apply";
             btnCancel.Text = vi ? "Hủy" : "Cancel";
+            btnLogout.Text = vi ? "Đăng xuất" : "Logout";
         }
 
         private void SaveOnly()
         {
-            _settings.Theme             = _themePreview;
             _settings.NotificationSound = _soundOnPreview;
-            _settings.ServerMode        = _statusPreview;
-            _settings.Language          = (string)(cmbLang != null ? cmbLang.SelectedItem : "vi-VN");
-            _settings.FontFamily        = (string)(cmbFontFamily != null ? cmbFontFamily.SelectedItem : this.Font.FontFamily.Name);
-            _settings.FontSize          = (int)this.Font.Size;
+            _settings.ServerMode = _statusPreview;
+            _settings.FontFamily = (string)(cmbFontFamily != null ? cmbFontFamily.SelectedItem : this.Font.FontFamily.Name);
+            _settings.FontSize = (int)this.Font.Size;
             AppSettingsStorage.Save(_settings);
         }
     }

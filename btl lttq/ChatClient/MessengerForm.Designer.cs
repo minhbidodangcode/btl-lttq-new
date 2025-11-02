@@ -101,14 +101,13 @@ namespace btl_lttq.ChatClient
             // 
             // panelLeft
             // 
-            this.panelLeft.Padding = new Padding(0);
-            this.panelLeft.Margin = new Padding(6);
             this.panelLeft.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(246)))), ((int)(((byte)(248)))));
             this.panelLeft.Controls.Add(this.lvConversations);
             this.panelLeft.Controls.Add(this.panelLeftBottom);
             this.panelLeft.Controls.Add(this.panelLeftTop);
             this.panelLeft.Dock = System.Windows.Forms.DockStyle.Left;
             this.panelLeft.Location = new System.Drawing.Point(0, 0);
+            this.panelLeft.Margin = new System.Windows.Forms.Padding(6);
             this.panelLeft.Name = "panelLeft";
             this.panelLeft.Size = new System.Drawing.Size(280, 720);
             this.panelLeft.TabIndex = 4;
@@ -187,7 +186,7 @@ namespace btl_lttq.ChatClient
             // 
             // panelLeftTop
             // 
-            this.panelLeftTop.BackColor = System.Drawing.Color.White;
+            this.panelLeftTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(35)))), ((int)(((byte)(37)))));
             this.panelLeftTop.Controls.Add(this.btnCreateGroup);
             this.panelLeftTop.Controls.Add(this.txtGlobalSearch);
             this.panelLeftTop.Dock = System.Windows.Forms.DockStyle.Top;
@@ -199,12 +198,13 @@ namespace btl_lttq.ChatClient
             // 
             // btnCreateGroup
             // 
+            this.btnCreateGroup.BackColor = System.Drawing.Color.White;
             this.btnCreateGroup.Location = new System.Drawing.Point(198, 17);
             this.btnCreateGroup.Name = "btnCreateGroup";
             this.btnCreateGroup.Size = new System.Drawing.Size(24, 23);
             this.btnCreateGroup.TabIndex = 1;
             this.btnCreateGroup.Text = "+";
-            this.btnCreateGroup.UseVisualStyleBackColor = true;
+            this.btnCreateGroup.UseVisualStyleBackColor = false;
             // 
             // txtGlobalSearch
             // 
@@ -225,12 +225,12 @@ namespace btl_lttq.ChatClient
             // panelCenter
             // 
             this.panelCenter.BackColor = System.Drawing.Color.White;
-            this.panelCenter.Margin = new Padding(6);
             this.panelCenter.Controls.Add(this.panelMessages);
             this.panelCenter.Controls.Add(this.inputPanel);
             this.panelCenter.Controls.Add(this.headerPanel);
             this.panelCenter.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelCenter.Location = new System.Drawing.Point(282, 0);
+            this.panelCenter.Margin = new System.Windows.Forms.Padding(6);
             this.panelCenter.Name = "panelCenter";
             this.panelCenter.Size = new System.Drawing.Size(785, 720);
             this.panelCenter.TabIndex = 0;
@@ -389,7 +389,6 @@ namespace btl_lttq.ChatClient
             // panelRight
             // 
             this.panelRight.BackColor = System.Drawing.Color.White;
-            this.panelRight.Margin = new Padding(6);
             this.panelRight.Controls.Add(this.lblTheme);
             this.panelRight.Controls.Add(this.lvSharedFiles);
             this.panelRight.Controls.Add(this.lblSharedFiles);
@@ -399,6 +398,7 @@ namespace btl_lttq.ChatClient
             this.panelRight.Controls.Add(this.cboBackground);
             this.panelRight.Dock = System.Windows.Forms.DockStyle.Right;
             this.panelRight.Location = new System.Drawing.Point(1069, 0);
+            this.panelRight.Margin = new System.Windows.Forms.Padding(6);
             this.panelRight.Name = "panelRight";
             this.panelRight.Padding = new System.Windows.Forms.Padding(8);
             this.panelRight.Size = new System.Drawing.Size(258, 720);
