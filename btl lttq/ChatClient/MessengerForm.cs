@@ -104,33 +104,48 @@ namespace btl_lttq.ChatClient
             lvConversations.ItemActivate += async (s, e) =>
             {
                 if (lvConversations.SelectedItems.Count == 0) return;
+                var id = (Guid)lvConversations.SelectedItems[0].Tag;
+                await OpenConversationByIdAsync(id);
+            };
 
-                _currentConversationId = (Guid)lvConversations.SelectedItems[0].Tag;
+            var convMenu = new ContextMenuStrip();
+            var miOpen = new ToolStripMenuItem("Mở");
+            var miDelete = new ToolStripMenuItem("Xóa nhóm này...");
 
-                // lấy nền đã lưu trong DB
-                var savedBg = await GetConversationBackgroundAsync(_currentConversationId);
-                _convBack[_currentConversationId] = savedBg;
-                ApplyBackgroundToMessagesPanel(savedBg);
+            convMenu.Items.Add(miOpen);
+            convMenu.Items.Add(new ToolStripSeparator());
+            convMenu.Items.Add(miDelete);
 
-                // sync combobox
-                if (cboBackground != null)
+            lvConversations.ContextMenuStrip = convMenu;
+
+            // chọn item khi click phải
+            lvConversations.MouseUp += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Right)
                 {
-                    if (string.IsNullOrEmpty(savedBg))
-                        cboBackground.SelectedIndex = 0;
-                    else
+                    var item = lvConversations.GetItemAt(e.X, e.Y);
+                    if (item != null)
                     {
-                        int idx = Array.FindIndex(_chatBackgrounds,
-                            p => string.Equals(p, savedBg, StringComparison.OrdinalIgnoreCase));
-                        cboBackground.SelectedIndex = idx >= 0 ? idx + 1 : 0;
+                        item.Selected = true;
+                        item.Focused = true;
                     }
                 }
+            };
 
-                await Task.WhenAll(
-                    LoadConversationHeaderAsync(_currentConversationId),
-                    LoadMembersAsync(_currentConversationId),
-                    LoadMessagesAsync(_currentConversationId),
-                    LoadSharedFilesAsync(_currentConversationId)
-                );
+            // mở
+            miOpen.Click += async (s, e) =>
+            {
+                if (lvConversations.SelectedItems.Count == 0) return;
+                var id = (Guid)lvConversations.SelectedItems[0].Tag;
+                await OpenConversationByIdAsync(id);
+            };
+
+            // xóa
+            miDelete.Click += async (s, e) =>
+            {
+                if (lvConversations.SelectedItems.Count == 0) return;
+                var id = (Guid)lvConversations.SelectedItems[0].Tag;
+                await TryDeleteConversationAsync(id);
             };
 
             // gửi tin
@@ -1710,5 +1725,176 @@ SELECT @newId;
                 MessageBox.Show("Không tạo được nhóm: " + ex.Message);
             }
         }
+        private async Task OpenConversationByIdAsync(Guid conversationId)
+        {
+            _currentConversationId = conversationId;
+
+            // nền
+            var savedBg = await GetConversationBackgroundAsync(conversationId);
+            _convBack[conversationId] = savedBg;
+            ApplyBackgroundToMessagesPanel(savedBg);
+
+            // sync combobox nền
+            if (cboBackground != null)
+            {
+                if (string.IsNullOrEmpty(savedBg))
+                    cboBackground.SelectedIndex = 0;
+                else
+                {
+                    int idx = Array.FindIndex(_chatBackgrounds,
+                        p => string.Equals(p, savedBg, StringComparison.OrdinalIgnoreCase));
+                    cboBackground.SelectedIndex = idx >= 0 ? idx + 1 : 0;
+                }
+            }
+
+            await Task.WhenAll(
+                LoadConversationHeaderAsync(conversationId),
+                LoadMembersAsync(conversationId),
+                LoadMessagesAsync(conversationId),
+                LoadSharedFilesAsync(conversationId)
+            );
+
+            // chọn item bên trái cho chắc
+            foreach (ListViewItem item in lvConversations.Items)
+            {
+                if (item.Tag is Guid g && g == conversationId)
+                {
+                    item.Selected = true;
+                    item.Focused = true;
+                    item.EnsureVisible();
+                    break;
+                }
+            }
+        }
+        // kiểm tra đây có phải group không
+        private async Task<bool> IsConversationGroupAsync(Guid conversationId)
+        {
+            using (var conn = await Task.Run(() => Db.OpenConn()))
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT IsGroup FROM Conversations WHERE Id = @id";
+                cmd.Parameters.AddWithValue("@id", conversationId);
+                var v = await cmd.ExecuteScalarAsync();
+                return v != null && v != DBNull.Value && Convert.ToBoolean(v);
+            }
+        }
+
+        // kiểm tra user hiện tại có phải admin trong nhóm không
+        private async Task<bool> IsUserAdminInConversationAsync(Guid conversationId, Guid userId)
+        {
+            using (var conn = await Task.Run(() => Db.OpenConn()))
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"
+SELECT 1
+FROM ConversationMembers
+WHERE ConversationId = @cid AND UserId = @uid AND Role = 1;";
+                cmd.Parameters.AddWithValue("@cid", conversationId);
+                cmd.Parameters.AddWithValue("@uid", userId);
+                var v = await cmd.ExecuteScalarAsync();
+                return v != null;
+            }
+        }
+
+        private async Task TryDeleteConversationAsync(Guid conversationId)
+        {
+            // 1. chỉ cho xóa group
+            if (!await IsConversationGroupAsync(conversationId))
+            {
+                MessageBox.Show("Chỉ có thể xóa nhóm chat, không xóa được chat 1-1.", "Không thể xóa",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // 2. chỉ admin mới xóa
+            /*if (!await IsUserAdminInConversationAsync(conversationId, _currentUserId))
+            {
+                MessageBox.Show("Bạn không phải admin của nhóm này.", "Không thể xóa",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }*/
+
+            // 3. confirm
+            if (MessageBox.Show("Bạn muốn xóa toàn bộ nhóm chat này?\nTất cả tin nhắn và file trong nhóm sẽ bị xóa.",
+                                "Xác nhận xóa nhóm",
+                                MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                return;
+
+            try
+            {
+                await DeleteConversationAsync(conversationId);
+
+                // xóa trong UI
+                foreach (ListViewItem item in lvConversations.Items)
+                {
+                    if (item.Tag is Guid g && g == conversationId)
+                    {
+                        lvConversations.Items.Remove(item);
+                        break;
+                    }
+                }
+
+                // nếu đang mở đúng nhóm này → clear màn hình chat
+                if (_currentConversationId == conversationId)
+                {
+                    _currentConversationId = Guid.Empty;
+                    lblName.Text = "";
+                    lblStatus.Text = "";
+                    panelMessages.Controls.Clear();
+                    lstMembers.Items.Clear();
+                    lvSharedFiles.Items.Clear();
+                }
+
+                MessageBox.Show("Đã xóa nhóm chat.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Xóa nhóm thất bại: " + ex.Message);
+            }
+        }
+
+        // thực sự xóa trong DB
+        private async Task DeleteConversationAsync(Guid conversationId)
+        {
+            using (var conn = await Task.Run(() => Db.OpenConn()))
+            using (var tran = conn.BeginTransaction())
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.Transaction = tran;
+
+                // 1. xóa attachments thuộc các messages trong conv
+                cmd.CommandText = @"
+DELETE a
+FROM MessageAttachments a
+JOIN Messages m ON m.Id = a.MessageId
+WHERE m.ConversationId = @cid;";
+                cmd.Parameters.AddWithValue("@cid", conversationId);
+                await cmd.ExecuteNonQueryAsync();
+
+                // 2. xóa messages
+                cmd.Parameters.Clear();
+                cmd.Transaction = tran;
+                cmd.CommandText = "DELETE FROM Messages WHERE ConversationId = @cid;";
+                cmd.Parameters.AddWithValue("@cid", conversationId);
+                await cmd.ExecuteNonQueryAsync();
+
+                // 3. xóa members
+                cmd.Parameters.Clear();
+                cmd.Transaction = tran;
+                cmd.CommandText = "DELETE FROM ConversationMembers WHERE ConversationId = @cid;";
+                cmd.Parameters.AddWithValue("@cid", conversationId);
+                await cmd.ExecuteNonQueryAsync();
+
+                // 4. xóa conversation
+                cmd.Parameters.Clear();
+                cmd.Transaction = tran;
+                cmd.CommandText = "DELETE FROM Conversations WHERE Id = @cid;";
+                cmd.Parameters.AddWithValue("@cid", conversationId);
+                await cmd.ExecuteNonQueryAsync();
+
+                tran.Commit();
+            }
+        }
+
     }
 }
