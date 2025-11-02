@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Data.SqlClient;
 using System.Windows.Forms;
 using Microsoft.VisualBasic;
@@ -8,7 +9,7 @@ namespace btl_lttq.Admin
     public partial class FormDoanChat : Form
     {
         private readonly string connectionString =
-            "Server=LAPTOP-LQAGRB3F;Database=MessengerDb;Trusted_Connection=True;TrustServerCertificate=True;";
+            ConfigurationManager.ConnectionStrings["MessengerDb"].ConnectionString;
 
         public FormDoanChat()
         {

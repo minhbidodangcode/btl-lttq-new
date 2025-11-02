@@ -54,6 +54,12 @@ namespace btl_lttq.ChatClient
 
         // ─── ctor ────────────────────────────────────────────
         // ctor nhận sẵn userId từ form login
+        public MessengerForm(Guid currentUserId, Guid friendId, string friendNameOrEmail)
+    : this(currentUserId, friendNameOrEmail)
+        {
+            _ = OpenChatWithFriendAsync(friendId);
+        }
+
         public MessengerForm(Guid userId, string userNameOrEmail) : this()
         {
             _currentUserId = userId;
@@ -171,11 +177,10 @@ namespace btl_lttq.ChatClient
             // Nút "Bạn bè" → mở danh sách bạn bè
             btnFriends.Click += (s, e) =>
             {
-                var friendList = new FriendListForm(_currentUserId, _currentUserNameOrEmail);
+                var friendList = new FriendListForm(this, _currentUserId, _currentUserNameOrEmail);
                 friendList.StartPosition = FormStartPosition.CenterScreen;
                 friendList.Show();
             };
-
 
             // Nút "Hồ sơ" → mở thông tin cá nhân
             btnProfile.Click += (s, e) =>
@@ -217,6 +222,84 @@ namespace btl_lttq.ChatClient
             };
             btnCreateGroup.Click += async (s, e) => await CreateNewGroupAsync();
         }
+        public async Task OpenChatWithFriendAsync(Guid friendId)
+        {
+            // tìm hoặc tạo cuộc trò chuyện 1-1
+            Guid conversationId = await GetOrCreateConversationAsync(_currentUserId, friendId);
+
+            _currentConversationId = conversationId;
+
+            await Task.WhenAll(
+                LoadConversationHeaderAsync(conversationId),
+                LoadMembersAsync(conversationId),
+                LoadMessagesAsync(conversationId),
+                LoadSharedFilesAsync(conversationId)
+            );
+
+            // chọn item tương ứng bên trái
+            foreach (ListViewItem item in lvConversations.Items)
+            {
+                if (item.Tag is Guid g && g == conversationId)
+                {
+                    item.Selected = true;
+                    item.Focused = true;
+                    item.EnsureVisible();
+                    break;
+                }
+            }
+
+            // chắc chắn panel chat hiện ra
+            this.BringToFront();
+            this.Activate();
+        }
+        // Tìm hoặc tạo cuộc trò chuyện 1-1 đúng với schema SQL của bạn
+        private async Task<Guid> GetOrCreateConversationAsync(Guid user1, Guid user2)
+        {
+            // 1) thử tìm cuộc trò chuyện 1-1 đã có
+            using (var conn = await Task.Run(() => Db.OpenConn()))
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"
+SELECT cm1.ConversationId
+FROM ConversationMembers cm1
+JOIN ConversationMembers cm2 ON cm1.ConversationId = cm2.ConversationId
+JOIN Conversations c         ON c.Id = cm1.ConversationId
+WHERE c.IsGroup = 0
+  AND cm1.UserId = @u1
+  AND cm2.UserId = @u2;";
+                cmd.Parameters.AddWithValue("@u1", user1);
+                cmd.Parameters.AddWithValue("@u2", user2);
+
+                var exist = await cmd.ExecuteScalarAsync();
+                if (exist != null && exist != DBNull.Value)
+                    return (Guid)exist;
+            }
+
+            // 2) chưa có → tạo mới
+            using (var conn = await Task.Run(() => Db.OpenConn()))
+            using (var cmd = conn.CreateCommand())
+            {
+                // làm 1 shot cho gọn
+                cmd.CommandText = @"
+DECLARE @cid UNIQUEIDENTIFIER = NEWID();
+
+INSERT INTO Conversations (Id, Title, IsGroup, CreatedBy)
+VALUES (@cid, NULL, 0, @u1);              -- 👈 CreatedBy bắt buộc, nên để user1
+
+INSERT INTO ConversationMembers (ConversationId, UserId, Role)
+VALUES (@cid, @u1, 1),                    -- người mở chat: admin
+       (@cid, @u2, 0);                    -- người còn lại: member
+
+SELECT @cid;";
+                cmd.Parameters.AddWithValue("@u1", user1);
+                cmd.Parameters.AddWithValue("@u2", user2);
+
+                var newId = await cmd.ExecuteScalarAsync();
+                return (Guid)newId;
+            }
+        }
+
+
 
         // ───────────────────────────────────────────
         // 1. load user / hội thoại ban đầu

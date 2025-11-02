@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Drawing;
@@ -9,7 +10,7 @@ namespace btl_lttq.Admin
     public partial class FormTaiKhoan : Form
     {
         private string connectionString =
-            "Server=LAPTOP-LQAGRB3F;Database=MessengerDb;Trusted_Connection=True;TrustServerCertificate=True;";
+            ConfigurationManager.ConnectionStrings["MessengerDb"].ConnectionString;
 
         bool isAdding = false;
 

@@ -1,4 +1,5 @@
-﻿using btl_lttq.Data;
+﻿using btl_lttq.ChatClient;
+using btl_lttq.Data;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -14,26 +15,21 @@ namespace btl_lttq.Friendprofile
 {
     public partial class FriendListForm : Form
     {
+        private readonly MessengerForm _messenger;
         private Guid _currentUserId;
         private string _currentUsername;
         private List<FriendInfo> allFriends = new List<FriendInfo>();
         private readonly string _connStr;
 
-        // ✅ ctor mặc định để Designer / chỗ cũ vẫn gọi được
-        public FriendListForm() : this(Guid.Empty, null)
-        {
-        }
 
-        // ✅ ctor “chuẩn” – cái bạn nên dùng từ MessengerForm
-        public FriendListForm(Guid currentUserId, string currentUsername)
+        public FriendListForm(MessengerForm messenger, Guid currentUserId, string currentUsername)
         {
             InitializeComponent();
+            _messenger = messenger;
             _currentUserId = currentUserId;
             _currentUsername = currentUsername;
 
-            // đọc từ app.config
             _connStr = ConfigurationManager.ConnectionStrings["MessengerDb"]?.ConnectionString;
-  
         }
 
         private void FriendListForm_Load(object sender, EventArgs e)
@@ -57,11 +53,9 @@ namespace btl_lttq.Friendprofile
                 _currentUserId = GetUserId(_currentUsername);
             }
 
-            // load bạn bè của đúng user hiện tại
             allFriends = DatabaseHelper.GetFriends(_currentUserId);
             DisplayFriends(allFriends);
 
-            // mở form thêm bạn
             btnAddFriend.Click += (_, __) =>
             {
                 var addForm = new AddFriendForm(this, _currentUserId, _currentUsername);
@@ -188,10 +182,23 @@ namespace btl_lttq.Friendprofile
                 };
                 btnChat.FlatAppearance.BorderSize = 0;
                 btnChat.FlatAppearance.MouseOverBackColor = Color.DodgerBlue;
-                btnChat.Click += (s, e) =>
+                btnChat.Click += async (s, e) =>
                 {
-                    // chỗ này bạn đã có code mở chat rồi, giữ nguyên / gọi sang MessengerForm
-                    MessageBox.Show($"💬 Mở chat với {f.FriendName}");
+                    if (_messenger != null)
+                    {
+                        // gọi đúng form chính đã mở
+                        await _messenger.OpenChatWithFriendAsync(f.FriendId);
+                        _messenger.Show();
+                        _messenger.Activate();
+                        this.Close(); // hoặc this.Hide();
+                    }
+                    else
+                    {
+                        // fallback: mở mới nếu không có messenger truyền vào
+                        var mf = new MessengerForm(_currentUserId, f.FriendId, f.FriendName);
+                        mf.StartPosition = FormStartPosition.CenterScreen;
+                        mf.Show();
+                    }
                 };
 
                 // nút thông tin
@@ -288,6 +295,41 @@ namespace btl_lttq.Friendprofile
                 flowFriends.Controls.Add(p);
             }
         }
+        private Guid GetOrCreateConversation(Guid user1, Guid user2)
+        {
+            using (var conn = new SqlConnection(_connStr))
+            {
+                conn.Open();
+
+                // 1️⃣ Kiểm tra đã tồn tại conversation giữa 2 người chưa
+                string checkSql = @"
+            SELECT Id FROM Conversations
+            WHERE (User1Id = @u1 AND User2Id = @u2)
+               OR (User1Id = @u2 AND User2Id = @u1)";
+                using (var cmd = new SqlCommand(checkSql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@u1", user1);
+                    cmd.Parameters.AddWithValue("@u2", user2);
+
+                    var result = cmd.ExecuteScalar();
+                    if (result != null)
+                        return (Guid)result;
+                }
+
+                // 2️⃣ Nếu chưa có → tạo mới
+                string insertSql = @"
+            INSERT INTO Conversations (User1Id, User2Id)
+            OUTPUT INSERTED.Id
+            VALUES (@u1, @u2)";
+                using (var cmd = new SqlCommand(insertSql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@u1", user1);
+                    cmd.Parameters.AddWithValue("@u2", user2);
+                    return (Guid)cmd.ExecuteScalar();
+                }
+            }
+        }
+
 
         private Guid GetUserId(string username)
         {
