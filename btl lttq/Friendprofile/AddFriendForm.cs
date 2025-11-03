@@ -417,8 +417,25 @@ namespace btl_lttq.Friendprofile
             return sb.ToString().Normalize(NormalizationForm.FormC);
         }
 
-        private void RemovePlaceholder(object sender, EventArgs e) { /* ... */ }
-        private void AddPlaceholder(object sender, EventArgs e) { /* ... */ }
+        private void RemovePlaceholder(object sender, EventArgs e)
+        {
+            if (txtSearch.Text == "Tìm lời kết bạn hoặc người dùng")
+            {
+                txtSearch.Text = "";
+                txtSearch.ForeColor = Color.Black;
+                txtSearch.Font = new Font("Segoe UI", 12, FontStyle.Regular);
+            }
+        }
+
+        private void AddPlaceholder(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtSearch.Text))
+            {
+                txtSearch.Text = "Tìm lời kết bạn hoặc người dùng";
+                txtSearch.ForeColor = Color.Gray;
+                txtSearch.Font = new Font("Segoe UI", 12, FontStyle.Italic);
+            }
+        }
     }
 
     public class FriendRequest

@@ -58,8 +58,6 @@
             this.btnExit = new System.Windows.Forms.Button();
             this.dgvUsers = new System.Windows.Forms.DataGridView();
             this.btnSave = new System.Windows.Forms.Button();
-            this.button1 = new System.Windows.Forms.Button();
-            this.btnExportXlsx = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dgvUsers)).BeginInit();
             this.SuspendLayout();
             // 
@@ -288,7 +286,7 @@
             // 
             // btnEdit
             // 
-            this.btnEdit.Location = new System.Drawing.Point(140, 399);
+            this.btnEdit.Location = new System.Drawing.Point(153, 400);
             this.btnEdit.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnEdit.Name = "btnEdit";
             this.btnEdit.Size = new System.Drawing.Size(75, 23);
@@ -299,7 +297,7 @@
             // 
             // btnDelelte
             // 
-            this.btnDelelte.Location = new System.Drawing.Point(261, 399);
+            this.btnDelelte.Location = new System.Drawing.Point(282, 400);
             this.btnDelelte.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnDelelte.Name = "btnDelelte";
             this.btnDelelte.Size = new System.Drawing.Size(75, 23);
@@ -310,7 +308,7 @@
             // 
             // btnCancel
             // 
-            this.btnCancel.Location = new System.Drawing.Point(480, 399);
+            this.btnCancel.Location = new System.Drawing.Point(559, 400);
             this.btnCancel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
@@ -343,7 +341,7 @@
             // 
             // btnSave
             // 
-            this.btnSave.Location = new System.Drawing.Point(367, 399);
+            this.btnSave.Location = new System.Drawing.Point(412, 400);
             this.btnSave.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(75, 23);
@@ -352,33 +350,12 @@
             this.btnSave.UseVisualStyleBackColor = true;
             this.btnSave.Click += new System.EventHandler(this.btnSave_Click);
             // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(0, 0);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 30;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = true;
-            // 
-            // btnExportXlsx
-            // 
-            this.btnExportXlsx.Location = new System.Drawing.Point(581, 400);
-            this.btnExportXlsx.Name = "btnExportXlsx";
-            this.btnExportXlsx.Size = new System.Drawing.Size(96, 23);
-            this.btnExportXlsx.TabIndex = 31;
-            this.btnExportXlsx.Text = "Xuât Excel";
-            this.btnExportXlsx.UseVisualStyleBackColor = true;
-            this.btnExportXlsx.Click += new System.EventHandler(this.btnExportXlsx_Click);
-            // 
             // FormTaiKhoan
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
             this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Controls.Add(this.btnExportXlsx);
-            this.Controls.Add(this.button1);
             this.Controls.Add(this.btnSave);
             this.Controls.Add(this.dgvUsers);
             this.Controls.Add(this.btnExit);
@@ -452,8 +429,6 @@
         private System.Windows.Forms.Button btnExit;
         private System.Windows.Forms.DataGridView dgvUsers;
         private System.Windows.Forms.Button btnSave;
-        private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Button btnExportXlsx;
     }
 
 }

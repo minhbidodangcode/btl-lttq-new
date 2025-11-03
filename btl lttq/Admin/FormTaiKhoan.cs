@@ -22,14 +22,11 @@ namespace btl_lttq.Admin
 
         private bool isAdding = false;
 
-        // Giữ hash gốc của bản ghi đang chọn
         private string currentPasswordHash = null;
         private string currentPasswordSalt = null;
 
-        // File local để lưu bản mã hoá có thể phục hồi cho admin (demo)
         private readonly string adminSecretsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "admin_passwords.dat");
 
-        // Cấu trúc lưu file: Dictionary<userId, base64(encrypted bytes)>
         private Dictionary<string, string> adminSecretsCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         public FormTaiKhoan()
@@ -160,7 +157,7 @@ namespace btl_lttq.Admin
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Không lưu được file admin secrets: " + ex.Message);
+               
             }
         }
 
