@@ -5,10 +5,13 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Windows.Forms;
 using System.Text.Json;
+using System.Windows.Forms;
+using ClosedXML.Excel;
+
 
 namespace btl_lttq.Admin
 {
@@ -19,11 +22,11 @@ namespace btl_lttq.Admin
 
         private bool isAdding = false;
 
-        // Giữ hash gốc của bản ghi đang chọn (để nếu user không nhập pass mới thì giữ nguyên)
+        // Giữ hash gốc của bản ghi đang chọn
         private string currentPasswordHash = null;
         private string currentPasswordSalt = null;
 
-        // File local để lưu bản mã hoá có thể phục hồi cho admin (KHÔNG an toàn cho production)
+        // File local để lưu bản mã hoá có thể phục hồi cho admin (demo)
         private readonly string adminSecretsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "admin_passwords.dat");
 
         // Cấu trúc lưu file: Dictionary<userId, base64(encrypted bytes)>
@@ -43,11 +46,94 @@ namespace btl_lttq.Admin
             dgvUsers.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvUsers.MultiSelect = false;
 
+            // Nút xuất Excel
+            var btnExportXlsx = new Button
+            {
+                Text = "Xuất Excel (.xlsx)",
+                Width = 120,
+                Height = 24,
+                Left = 18,
+                Top = 292
+            };
+            btnExportXlsx.Click += btnExportXlsx_Click;
+            this.Controls.Add(btnExportXlsx);
+
+            // (ĐÃ BỎ nút CSV và toàn bộ logic CSV)
+
             LockControls();
         }
 
+        // ============ Xuất Excel bằng ClosedXML ============
+        private void btnExportXlsx_Click(object sender, EventArgs e)
+        {
+            if (dgvUsers.Rows.Count == 0)
+            {
+                MessageBox.Show("Không có dữ liệu để xuất.");
+                return;
+            }
+
+            using (var sfd = new SaveFileDialog())
+            {
+                sfd.Title = "Lưu Excel";
+                sfd.Filter = "Excel Workbook (*.xlsx)|*.xlsx";
+                sfd.FileName = "Users.xlsx";
+                if (sfd.ShowDialog(this) != DialogResult.OK) return;
+
+                try
+                {
+                    ExportGridToXlsx(dgvUsers, sfd.FileName);
+                    if (MessageBox.Show("Đã xuất. Mở file ngay?", "Xuất Excel",
+                            MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start(sfd.FileName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Xuất Excel thất bại: " + ex.Message);
+                }
+            }
+        }
+
+        private void ExportGridToXlsx(DataGridView grid, string path)
+        {
+            // cần reference ClosedXML (ClosedXML.Excel)
+            using (var wb = new ClosedXML.Excel.XLWorkbook())
+            {
+                var ws = wb.Worksheets.Add("Users");
+
+                // Header
+                int col = 1;
+                foreach (DataGridViewColumn c in grid.Columns)
+                {
+                    ws.Cell(1, col).Value = c.HeaderText;
+                    ws.Cell(1, col).Style.Font.Bold = true;
+                    ws.Cell(1, col).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                    ws.Cell(1, col).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                    col++;
+                }
+
+                // Data
+                int row = 2;
+                foreach (DataGridViewRow r in grid.Rows)
+                {
+                    if (r.IsNewRow) continue;
+                    for (int c = 0; c < grid.Columns.Count; c++)
+                    {
+                        var val = r.Cells[c].Value;
+                        ws.Cell(row, c + 1).Value = val?.ToString();
+                    }
+                    row++;
+                }
+
+                // Auto-fit
+                ws.Columns().AdjustToContents();
+
+                wb.SaveAs(path);
+            }
+        }
+
         #region Admin secrets file handling (DPAPI)
-        // Load file into cache
         private void LoadAdminSecretsFromFile()
         {
             try
@@ -60,20 +146,16 @@ namespace btl_lttq.Admin
             }
             catch
             {
-                // Nếu lỗi đọc/parse thì reset cache (không ném exception để khỏi crash form)
                 adminSecretsCache = new Dictionary<string, string>();
             }
         }
 
-        // Save cache -> file
         private void SaveAdminSecretsToFile()
         {
             try
             {
                 string json = JsonSerializer.Serialize(adminSecretsCache);
                 File.WriteAllText(adminSecretsFile, json, Encoding.UTF8);
-
-                // (Optionally) set file attributes to hidden for small protection
                 try { File.SetAttributes(adminSecretsFile, FileAttributes.Hidden); } catch { }
             }
             catch (Exception ex)
@@ -82,7 +164,6 @@ namespace btl_lttq.Admin
             }
         }
 
-        // Mã hoá plainText bằng DPAPI (CurrentUser)
         private string ProtectString(string plain)
         {
             if (string.IsNullOrEmpty(plain)) return string.Empty;
@@ -91,7 +172,6 @@ namespace btl_lttq.Admin
             return Convert.ToBase64String(cipher);
         }
 
-        // Giải mã DPAPI
         private string UnprotectString(string protectedBase64)
         {
             if (string.IsNullOrEmpty(protectedBase64)) return string.Empty;
@@ -107,7 +187,6 @@ namespace btl_lttq.Admin
             }
         }
 
-        // Lưu mật khẩu thô (plain) cho admin vào file (mã hoá trước)
         private void SavePlainPasswordForAdmin(string userId, string plainPassword)
         {
             if (string.IsNullOrWhiteSpace(userId)) return;
@@ -117,7 +196,6 @@ namespace btl_lttq.Admin
             SaveAdminSecretsToFile();
         }
 
-        // Lấy mật khẩu thô (nếu có) cho userId
         private string GetPlainPasswordForAdmin(string userId)
         {
             if (string.IsNullOrWhiteSpace(userId)) return string.Empty;
@@ -184,7 +262,7 @@ namespace btl_lttq.Admin
             txtUserName.Text = row.Cells["UserName"].Value?.ToString();
             txtEmail.Text = row.Cells["Email"].Value?.ToString();
 
-            // Lưu hash thật vào biến ẩn (dùng nếu user không nhập mật khẩu mới)
+            // Lưu hash thật vào biến ẩn
             currentPasswordHash = row.Cells["PasswordHash"].Value?.ToString();
             currentPasswordSalt = row.Cells["PasswordSalt"].Value?.ToString();
 
@@ -201,12 +279,12 @@ namespace btl_lttq.Admin
             }
             chkIsActive.Checked = isActive;
 
-            // Thử lấy mật khẩu gốc (nếu admin đã lưu nó cục bộ trước đó)
+            // Thử lấy mật khẩu gốc (nếu admin đã lưu cục bộ trước đó)
             string userId = txtId.Text;
             string plainPassword = GetPlainPasswordForAdmin(userId);
             txtPasswordHash.Text = plainPassword; // nếu rỗng → textbox trống
 
-            // Salt (tùy bạn có muốn hiển thị)
+            // Salt
             string plainSalt = GetPlainPasswordForAdmin(userId + "_salt");
             txtPasswordSalt.Text = plainSalt;
 
@@ -290,10 +368,8 @@ namespace btl_lttq.Admin
                 return;
             }
 
-            // 2. Xử lý mật khẩu:
-            // Nếu isAdding: bắt buộc nhập mật khẩu
-            // Nếu sửa: nếu textbox mật khẩu không rỗng => hash mới; nếu rỗng => giữ hash cũ
-            string passwordToSaveHash; // string hex của SHA256
+            // 2. Xử lý mật khẩu
+            string passwordToSaveHash;
             string saltToSaveHash;
 
             if (isAdding)
@@ -303,26 +379,22 @@ namespace btl_lttq.Admin
                     MessageBox.Show("⚠️ Vui lòng nhập mật khẩu cho người dùng mới!");
                     return;
                 }
-                // hash mật khẩu để lưu vào DB (không thể khôi phục)
                 passwordToSaveHash = HashPassword(txtPasswordHash.Text);
                 saltToSaveHash = HashPassword(txtPasswordSalt.Text ?? string.Empty);
 
-                // Đồng thời lưu bản plaintext đã mã hoá cho admin vào file local
+                // Lưu bản plaintext đã mã hoá cho admin
                 SavePlainPasswordForAdmin(userId.ToString(), txtPasswordHash.Text);
                 SavePlainPasswordForAdmin(userId.ToString() + "_salt", txtPasswordSalt.Text ?? string.Empty);
             }
             else
             {
-                // Sửa
                 if (!string.IsNullOrWhiteSpace(txtPasswordHash.Text))
                 {
-                    // admin nhập pass mới → hash rồi lưu; đồng thời cập nhật bản lưu cục bộ
                     passwordToSaveHash = HashPassword(txtPasswordHash.Text);
                     SavePlainPasswordForAdmin(userId.ToString(), txtPasswordHash.Text);
                 }
                 else
                 {
-                    // không nhập gì -> giữ hash cũ (đã đọc từ DB lúc chọn)
                     passwordToSaveHash = currentPasswordHash ?? string.Empty;
                 }
 

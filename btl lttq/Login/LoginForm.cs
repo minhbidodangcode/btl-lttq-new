@@ -1,4 +1,5 @@
 ﻿using btl_lttq.ChatClient;
+using btl_lttq.FacebookLite;
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -35,7 +36,7 @@ namespace btl_lttq.Login
             WireTextboxFocusStyle(txtPassword);
         }
 
-        // 🟦 Viền bo tròn panel
+        // 🟦 Bo tròn panel
         private void RoundControl(Control c, int radius)
         {
             c.Paint += (s, e) =>
@@ -124,10 +125,10 @@ namespace btl_lttq.Login
                 return;
             }
 
+            // ✅ Tài khoản admin
             if (email.Equals("admin", StringComparison.OrdinalIgnoreCase)
                 && password == "88888888")
             {
-               
                 var menu = new Admin.FormMenu();
                 this.Hide();
                 menu.ShowDialog();
@@ -135,26 +136,26 @@ namespace btl_lttq.Login
                 return;
             }
 
-            // ✅ 2. Các tài khoản thường → đi theo luồng cũ
+            // ✅ Tài khoản người dùng thường
             try
             {
-                // 1. kiểm tra đăng nhập
                 if (AuthService.Login(email, password))
                 {
-                    // 2. lấy đúng UserId của tài khoản vừa đăng nhập
+                    // Lấy UserId
                     Guid userId = DatabaseHelper.GetUserIdByEmailAndPassword(email, password);
                     if (userId == Guid.Empty)
                     {
-                        MessageBox.Show("Đăng nhập được nhưng không lấy được UserId. Kiểm tra lại bảng Users!", "Lỗi");
+                        MessageBox.Show("Không tìm thấy UserId. Kiểm tra lại bảng Users!", "Lỗi");
                         return;
                     }
 
                     MessageBox.Show("Đăng nhập thành công!", "Thành công");
 
-                    // 3. mở messenger và TRUYỀN userId vào
+                    // Mở MessengerForm, truyền userId và email
                     MessengerForm messengerForm = new MessengerForm(userId, email);
                     this.Hide();
                     messengerForm.ShowDialog();
+
                     this.Close();
                 }
                 else
@@ -168,16 +169,13 @@ namespace btl_lttq.Login
             }
         }
 
-
         // 🪪 Mở form Đăng ký
         private void linkRegister_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             this.Hide();
             var frm = new RegisterForm();
-
             frm.FormClosed += (s, args) =>
             {
-                // ✅ Khi quay lại, xóa sạch nội dung
                 ResetLoginForm();
                 this.Show();
             };
@@ -189,17 +187,15 @@ namespace btl_lttq.Login
         {
             this.Hide();
             var frm = new ForgotPasswordForm();
-
             frm.FormClosed += (s, args) =>
             {
-                // ✅ Khi quay lại, xóa sạch nội dung
                 ResetLoginForm();
                 this.Show();
             };
             frm.Show();
         }
 
-        // 🧹 Hàm reset nội dung form đăng nhập
+        // 🧹 Reset nội dung form đăng nhập
         private void ResetLoginForm()
         {
             txtEmail.ForeColor = Color.Gray;

@@ -1,24 +1,31 @@
 using System;
+using System.Configuration;
+using System.Data.SqlClient;
 using System.Drawing;
+using System.Drawing.Text;
 using System.Linq;
 using System.Windows.Forms;
-using System.Drawing.Text;
-using btl_lttq.Login; // để gọi LoginForm
+using btl_lttq.Login;
 
 namespace btl_lttq.FacebookLite
 {
     public partial class SettingForm : Form
     {
+        // Lấy chuỗi kết nối từ App.config
+        private readonly string connectionString =
+            ConfigurationManager.ConnectionStrings["MessengerDb"].ConnectionString;
+
+        // User đang đăng nhập (truyền từ form gọi)
+        private readonly Guid _currentUserId;
+
         private BackButton btnBack;
         private Label lblTitle;
         private FlowLayoutPanel flow;
         private Panel bottomBar;
         private Panel header;
 
-        private AppSettings _settings;
-        private bool _soundOnPreview;
-        private string _statusPreview;
-        private string _languagePreview;   // chỉ để hiển thị UI theo tiếng Việt / Anh, không cho đổi
+        private bool _soundOnPreview = true;
+        private string _statusPreview = "Active"; // chỉ là preview UI, KHÔNG đụng DB cho đến khi người dùng bấm
         private string _fontFamilyPreview;
 
         private ComboBox cmbFontFamily;
@@ -29,6 +36,7 @@ namespace btl_lttq.FacebookLite
 
         private SettingCard sndOn, sndOff, sttOn, sttOff;
 
+        // ---- check font support (giữ nguyên) ----
         [System.Runtime.InteropServices.DllImport("gdi32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
         static extern int GetGlyphIndicesW(IntPtr hdc, string text, int count, ushort[] pgi, int flags);
 
@@ -36,7 +44,7 @@ namespace btl_lttq.FacebookLite
         {
             try
             {
-                using (var f = new Font(familyName, 10f, FontStyle.Regular, GraphicsUnit.Point))
+                using (var f = new Font(familyName, 10f))
                 using (var bmp = new Bitmap(1, 1))
                 using (var g = Graphics.FromImage(bmp))
                 {
@@ -62,26 +70,25 @@ namespace btl_lttq.FacebookLite
             [System.Runtime.InteropServices.DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr hObject);
         }
 
-        public SettingForm()
+        // ===== Constructor mới: nhận userId =====
+        public SettingForm(Guid userId)
         {
             InitializeComponent();
+            _currentUserId = userId;
+
             Font = new Font("Segoe UI", 10f);
             DoubleBuffered = true;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
 
-            _settings = AppSettingsStorage.Load();
-            _soundOnPreview = _settings.NotificationSound;
-            _statusPreview = string.IsNullOrEmpty(_settings.ServerMode) ? "Active" : (_settings.ServerMode == "Inactive" ? "Inactive" : "Active");
-            _languagePreview = string.IsNullOrEmpty(_settings.Language) ? "vi-VN" : _settings.Language;
-            _fontFamilyPreview = string.IsNullOrEmpty(_settings.FontFamily) ? this.Font.FontFamily.Name : _settings.FontFamily;
+            _fontFamilyPreview = this.Font.FontFamily.Name;
 
             Shown += (s, e) =>
             {
                 BuildUI();
                 BuildCards();
-                LoadPreviewValues();
+                LoadPreviewValues();     // CHỈ load UI, KHÔNG ghi DB
                 UpdateFormColorsOnly();
                 RedrawPillStates();
                 ApplyLocalization();
@@ -96,7 +103,15 @@ namespace btl_lttq.FacebookLite
             header = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White };
             btnBack = new BackButton { Left = 12, Top = 14 };
             btnBack.Click += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
-            lblTitle = new Label { Text = "Cài đặt", AutoSize = false, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Segoe UI Semibold", 12f), Padding = new Padding(48, 0, 0, 0) };
+            lblTitle = new Label
+            {
+                Text = "Cài đặt",
+                AutoSize = false,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI Semibold", 12f),
+                Padding = new Padding(48, 0, 0, 0)
+            };
             header.Controls.Add(btnBack);
             header.Controls.Add(lblTitle);
             Controls.Add(header);
@@ -133,7 +148,6 @@ namespace btl_lttq.FacebookLite
                 btnApply.Left = btnCancel.Left - btnApply.Width - 8;
                 btnCancel.Top = btnApply.Top = 14;
             };
-
             // đặt lần đầu
             btnLogout.Left = 16;
             btnLogout.Top = 14;
@@ -141,7 +155,8 @@ namespace btl_lttq.FacebookLite
             btnApply.Left = btnCancel.Left - btnApply.Width - 8;
             btnCancel.Top = btnApply.Top = 14;
 
-            btnApply.Click += (s, e) => { SaveOnly(); DialogResult = DialogResult.OK; Close(); };
+            // Áp dụng/Hủy chỉ đóng form, không lưu cấu hình nào cả (vì không dùng AppSettings)
+            btnApply.Click += (s, e) => { DialogResult = DialogResult.OK; Close(); };
             btnCancel.Click += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
 
             btnLogout.Click += (s, e) =>
@@ -150,10 +165,8 @@ namespace btl_lttq.FacebookLite
                         MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                     return;
 
-                Application.Restart();
-
+                Application.Restart(); // quay về màn đăng nhập nếu app của bạn khởi động vào LoginForm
             };
-
         }
 
         private SettingCard MakeRowCard(Label leftLabel, Control rightControl, bool isFirst = false)
@@ -175,8 +188,6 @@ namespace btl_lttq.FacebookLite
             leftLabel.Width = 140;
             leftLabel.AutoEllipsis = true;
             leftLabel.TextAlign = ContentAlignment.MiddleLeft;
-            leftLabel.Left = 0;
-            leftLabel.Top = 0;
             leftLabel.BackColor = Color.Transparent;
 
             rightControl.Anchor = AnchorStyles.Right | AnchorStyles.Top;
@@ -212,7 +223,7 @@ namespace btl_lttq.FacebookLite
             lblStatusLeft = new Label { Text = "Trạng thái" };
             lSttOn.Text = "Hoạt động"; lSttOff.Text = "Không hoạt động";
             flow.Controls.Add(MakeRowCard(lblStatusLeft, pnlStatus));
-            sttOn.Click += (s, e) => SetStatus("Active");
+            sttOn.Click += (s, e) => SetStatus("Active");   // chỉ cập nhật DB khi click
             sttOff.Click += (s, e) => SetStatus("Inactive");
             lSttOn.Click += (s, e) => SetStatus("Active");
             lSttOff.Click += (s, e) => SetStatus("Inactive");
@@ -223,7 +234,9 @@ namespace btl_lttq.FacebookLite
             using (var ifc = new InstalledFontCollection())
             {
                 var sample = "Tiếng Việt ă â ê ô ơ ư đ";
-                var names = ifc.Families.Select(f => f.Name).Where(n => FontSupportsText(n, sample)).OrderBy(n => n).ToArray();
+                var names = ifc.Families.Select(f => f.Name)
+                                         .Where(n => FontSupportsText(n, sample))
+                                         .OrderBy(n => n).ToArray();
                 if (names.Length == 0) names = ifc.Families.Select(f => f.Name).OrderBy(n => n).ToArray();
                 cmbFontFamily.Items.AddRange(names);
             }
@@ -305,13 +318,52 @@ namespace btl_lttq.FacebookLite
             }
         }
 
-        private void SetSound(bool on) { _soundOnPreview = on; RedrawPillStates(); }
-        private void SetStatus(string s) { _statusPreview = (s == "Active") ? "Active" : "Inactive"; RedrawPillStates(); }
+        private void SetSound(bool on)
+        {
+            _soundOnPreview = on;
+            RedrawPillStates();
+        }
+
+        // ====== CẬP NHẬT SQL CHỈ KHI NGƯỜI DÙNG CLICK ======
+        private void SetStatus(string s)
+        {
+            _statusPreview = (s == "Active") ? "Active" : "Inactive";
+            RedrawPillStates();
+
+            try
+            {
+                bool newIsActive = _statusPreview == "Active";
+                using (var conn = new SqlConnection(connectionString))
+                using (var cmd = new SqlCommand("UPDATE dbo.Users SET IsActive = @isActive WHERE Id = @userId", conn))
+                {
+                    cmd.Parameters.AddWithValue("@isActive", newIsActive);
+                    cmd.Parameters.AddWithValue("@userId", _currentUserId);
+                    conn.Open();
+                    int n = cmd.ExecuteNonQuery();
+                    if (n == 0)
+                    {
+                        MessageBox.Show("Không tìm thấy người dùng để cập nhật.", "Thông báo",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+
+                MessageBox.Show("Trạng thái đã được cập nhật thành công!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi cập nhật trạng thái: " + ex.Message, "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
 
         private void LoadPreviewValues()
         {
-            SetSound(_soundOnPreview);
-            SetStatus(_statusPreview);
+            // KHÔNG gọi SetStatus ở đây để tránh ghi DB khi mở form.
+            // Chỉ cập nhật UI theo giá trị mặc định hiện tại.
+            RedrawPillStates();
+
             if (cmbFontFamily != null)
             {
                 var want = _fontFamilyPreview ?? this.Font.FontFamily.Name;
@@ -322,30 +374,20 @@ namespace btl_lttq.FacebookLite
 
         private void ApplyLocalization()
         {
-            bool vi = (_languagePreview ?? "vi-VN").StartsWith("vi");
+            // Chốt tiếng Việt cho UI
+            lblTitle.Text = "Cài đặt";
+            lblSoundLeft.Text = "Âm thanh";
+            lblStatusLeft.Text = "Trạng thái";
+            lblFontLeft.Text = "Phông chữ";
 
-            lblTitle.Text = vi ? "Cài đặt" : "Settings";
-            lblSoundLeft.Text = vi ? "Âm thanh" : "Sound";
-            lblStatusLeft.Text = vi ? "Trạng thái" : "Status";
-            lblFontLeft.Text = vi ? "Phông chữ" : "Font";
+            lSndOn.Text = "Bật tiếng";
+            lSndOff.Text = "Tắt tiếng";
+            lSttOn.Text = "Hoạt động";
+            lSttOff.Text = "Không hoạt động";
 
-            lSndOn.Text = vi ? "Bật tiếng" : "Unmute";
-            lSndOff.Text = vi ? "Tắt tiếng" : "Mute";
-            lSttOn.Text = vi ? "Hoạt động" : "Active";
-            lSttOff.Text = vi ? "Không hoạt động" : "Inactive";
-
-            btnApply.Text = vi ? "Áp dụng" : "Apply";
-            btnCancel.Text = vi ? "Hủy" : "Cancel";
-            btnLogout.Text = vi ? "Đăng xuất" : "Logout";
-        }
-
-        private void SaveOnly()
-        {
-            _settings.NotificationSound = _soundOnPreview;
-            _settings.ServerMode = _statusPreview;
-            _settings.FontFamily = (string)(cmbFontFamily != null ? cmbFontFamily.SelectedItem : this.Font.FontFamily.Name);
-            _settings.FontSize = (int)this.Font.Size;
-            AppSettingsStorage.Save(_settings);
+            btnApply.Text = "Áp dụng";
+            btnCancel.Text = "Hủy";
+            btnLogout.Text = "Đăng xuất";
         }
     }
 }

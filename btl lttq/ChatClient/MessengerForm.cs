@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Diagnostics;
+using btl_lttq.FacebookLite;
 
 namespace btl_lttq.ChatClient
 {
@@ -208,10 +209,19 @@ namespace btl_lttq.ChatClient
             // Nút "Cài đặt" → mở form cài đặt
             btnSettings.Click += (s, e) =>
             {
-                var f = new FacebookLite.SettingForm(); // form nằm trong namespace FacebookLite
-                f.StartPosition = FormStartPosition.CenterParent;
-                f.ShowDialog(this);
+                try
+                {
+                    var f = new FacebookLite.SettingForm(_currentUserId); // ✅ truyền userId vào constructor
+                    f.StartPosition = FormStartPosition.CenterParent;
+                    f.ShowDialog(this);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Không thể mở form cài đặt: " + ex.Message,
+                        "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             };
+
 
             lvSharedFiles.View = View.Details;
             lvSharedFiles.FullRowSelect = true;
